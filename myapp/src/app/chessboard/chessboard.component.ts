@@ -19,8 +19,6 @@ import { Observable } from 'rxjs';
     <ng-container *ngIf="knightPosition$|async as kp">
     <div class="app-square" *ngFor="let i of sixtyFour">
                 <app-square *ngIf="xy(i) as pos" [black]="isBlack(pos)" (click)="handleSquareClick(pos)">
-                <app-knight *ngIf="pos.x === 0 && pos.y === 0"></app-knight>
-
                     <app-knight *ngIf="pos.x === kp.x && pos.y === kp.y"></app-knight>
                 </app-square>
             </div>
@@ -35,7 +33,7 @@ export class BoardComponent {
     constructor(private game: GameService) {
         
         this.knightPosition$ = this.game.knightPosition$;
-this.knightPosition$.subscribe(pos => console.log("Knight position:", pos));
+    this.knightPosition$.subscribe(pos => console.log("Knight position:", pos));
 
     }
     

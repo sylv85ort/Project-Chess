@@ -1,5 +1,6 @@
 using System.Reflection.PortableExecutable;
 using ChessBackend;
+using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<GameService>();
+builder.Services.AddSingleton<GameEngine>();
+builder.Services.AddSingleton<IConfiguration>(builder.Configuration); // IConfiguration registration
+
 
 builder.Services.AddCors(options =>
 {

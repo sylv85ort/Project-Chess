@@ -1,16 +1,15 @@
-import { Component, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
-
+import { Component, Input } from "@angular/core";
 
 
 
 @Component({
-    selector: 'app-pawn',
     imports: [CommonModule],
+    selector: 'app-queen',
     template: `
     <div>
-      <span [ngStyle]="{ color: color === 'White' ? 'White' : 'Black' }">
-        ♙
+      <span [ngStyle]="{ color: color === 'White' ? 'white' : 'black' }">
+      ♔
       </span>
     </div>
   `,
@@ -22,7 +21,7 @@ import { CommonModule } from "@angular/common";
         }
     `]
 })
-export class PawnComponent {
+export class QueenComponent {
     @Input() color!: string; 
 
 }

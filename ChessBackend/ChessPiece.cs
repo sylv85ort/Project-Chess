@@ -92,7 +92,7 @@ namespace ChessBackend
             }
             if (Color == PieceColor.Black && CurrentPosition.X == 1)
             {
-                return (Math.Abs(dx) == 2);
+                return (Math.Abs(dx) == 2) || (Math.Abs(dx) == 1);
             }
             else if (Color == PieceColor.Black)
             {

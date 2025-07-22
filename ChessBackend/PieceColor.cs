@@ -1,4 +1,9 @@
 ﻿namespace ChessBackend
 {
-    public enum PieceColor { White, Black };
+    public enum PieceColor
+{
+    White,
+    Black 
+}
+
 }

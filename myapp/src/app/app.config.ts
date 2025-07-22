@@ -8,6 +8,6 @@ import { GameService } from './game.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [provideZoneChangeDetection({ eventCoalescing: true }), provideRouter(routes), 
-    provideClientHydration(withEventReplay()), GameService,
+    provideClientHydration(withEventReplay()), GameService, provideRouter(routes),
     provideHttpClient(withFetch())]
 };

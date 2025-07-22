@@ -1,125 +1,39 @@
 ﻿using System.Diagnostics;
 using ChessBackend;
 using Microsoft.AspNetCore.Mvc;
-using System.Timers;
 using static ChessBackend.ChessPiece;
-using Azure.Core.GeoJson;
-using Microsoft.Extensions.Configuration;
 
 [ApiController]
 [Route("api/[controller]")]
 public class ChessController : ControllerBase
 {
-    private static System.Timers.Timer aTimer;
     private readonly GameService _gameService;
     private readonly GameEngine _gameEngine;
-    private readonly IConfiguration _configuration;
 
-
-
-    public ChessController(GameService gameService, GameEngine gameEngine, IConfiguration configuration)
+    public ChessController(GameService gameService, GameEngine gameEngine)
     {
         _gameService = gameService;
         _gameEngine = gameEngine;
-        _configuration = configuration;
     }
-
-    // Keep the original method for backward compatibility
-    [HttpPost("MovePiece")]
-    public IActionResult MovePiece(MoveRequest move)
-    {
-        Debug.WriteLine($"Request to move piece to: {move}");
-        // Get current knight position (for backward compatibility)
-        var currentPosition = _gameEngine.currentPosition;
-        PieceType type = move.PieceType;
-
-        // Validate and move the knight
-        var result = _gameEngine.ValidateAndMovePiece(move.From, move.To, move.PieceType, _gameEngine.board);
-        if (result.IsValid)
-        {
-
-            return Ok(new
-            {
-                validMove = true,
-                newPosition = result.NewPosition
-            });
-        }
-        else
-        {
-            return Ok(new
-            {
-                validMove = false,
-                newPosition = currentPosition,
-                message = result.Message
-            });
-        }
-    }
-
-    //// New method for all pieces
-    //[HttpPost("MovePiece")]
-    //public IActionResult MovePiece([FromBody] MoveRequest moveRequest)
-    //{
-    //    Debug.WriteLine($"22  Request to move from: {moveRequest.From.X}, {moveRequest.From.Y} to: {moveRequest.To.X}, {moveRequest.To.Y}");
-
-    //    var result = _gameEngine.ValidateAndMovePiece(moveRequest.From, moveRequest.To);
-
-    //    if (result.IsValid)
-    //    {
-    //        Debug.WriteLine("22 Move successful");
-    //        return Ok(new
-    //        {
-    //            validMove = true,
-    //            newPosition = moveRequest.To,
-    //            pieceType = result.PieceType,
-    //            pieceColor = result.PieceColor
-    //        });
-    //    }
-    //    else
-    //    {
-    //        Debug.WriteLine("22 Invalid move");
-    //        return Ok(new
-    //        {
-    //            validMove = false,
-    //            message = result.Message,
-    //            // Return current knight position for backward compatibility
-    //            newPosition = _gameService.currentPosition
-    //        });
-    //    }
-    //}
-
-    [HttpPost("SelectPiece")]
-    public IActionResult SelectPiece([FromBody] Coord position)
-    {
-        var piece = _gameEngine.GetPieceAt(position);
-
-        if (piece != null)
-        {
-            return Ok(new
-            {
-                pieceFound = true,
-                position = position,
-                pieceType = (int)piece.PieceType,
-                pieceColor = piece.Color.ToString()
-            });
-        }
-        else
-        {
-            return Ok(new
-            {
-                pieceFound = false,
-                position = position
-            });
-        }
-    }
-
 
     [HttpPost("create-game")]
-    public async Task<IActionResult> StartGame()
+    public IActionResult StartGame([FromBody] CreateGameRequest request)
     {
         try
         {
-            int newGameId = await _gameService.CreateGame();
-            return Ok(new GameResponse { GameId = newGameId });
+            int newGameId = _gameService.StartNewGame(request.Player1Id, request.Player2Id);
+
+            var initialBoard = _gameEngine.GetInitialBoardState();
+            _gameService.SaveBoardToDatabase(newGameId, initialBoard);
+
+            var (whiteId, blackId) = _gameService.GetPlayerColors(newGameId);
+
+            return Ok(new GameResponse
+            {
+                GameId = newGameId,
+                WhitePlayerId = whiteId,
+                BlackPlayerId = blackId
+            });
         }
         catch (Exception ex)
         {
@@ -127,74 +41,101 @@ public class ChessController : ControllerBase
         }
     }
 
-    private int GenerateNewGameId()
+    [HttpGet("game-details")]
+    public IActionResult GetDetails([FromQuery] int gameId)
     {
-        // Simulate a new Game ID generation (if using Identity column, it may be auto-generated)
-        return new Random().Next(1000, 9999); // Example of random Game ID
-    }
+        var (whiteId, blackId) = _gameService.GetPlayerColors(gameId);
 
-    // Keep this for backward compatibility
-    [HttpGet("GetKnightPosition")]
-    public IActionResult GetKnightPosition()
-    {
-        return Ok(_gameEngine.currentPosition);
+        return Ok(new GameResponse
+        {
+            GameId = gameId,
+            WhitePlayerId = whiteId,
+            BlackPlayerId = blackId
+        });        
     }
 
     [HttpGet("GetBoard")]
-    public IActionResult GetBoard()
+    public IActionResult GetBoard([FromQuery] int gameId)
     {
-        var boardState = _gameService.GetBoardState();
-        return Ok(boardState);
-    }
-    [HttpGet("SelectedPiece")]
-    public IActionResult SelectedPiece([FromQuery] int y, [FromQuery] int x)
-    {
-        var piece = _gameEngine.board[y, x];
-        if (piece != null)
+        try
         {
-            return Ok(new
-            {
-                y,
-                x,
-                pieceType = (int)piece.PieceType  // numeric value expected by frontend
-            });
+            var boardState = _gameService.LoadGame(gameId);
+            return Ok(boardState);
         }
-        return NotFound("No piece at this location.");
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Failed to load game", detail = ex.Message });
+        }
     }
 
-
-    [HttpGet]
-    public IActionResult Get()
+    [HttpPost("MovePiece")]
+    public IActionResult MovePiece([FromBody] MoveRequest move)
     {
-        return Ok(new { message = "Chess API is running!" });
+        var dbPieces = _gameService.LoadGame(move.GameId);
+        var board = _gameEngine.BuildBoard(dbPieces);
+
+        var piece = board[move.From.X, move.From.Y];
+        if (piece == null)
+            return Ok(new { validMove = false, message = "No piece at selected position" });
+
+        string actualColor = piece.Color.ToString();
+        int playerId = _gameService.GetPlayerIdByColor(move.GameId, actualColor);
+        int userId = _gameService.GetUserIdByGamePlayer(playerId);
+
+        Debug.WriteLine($"Move requested by User {move.UserId}, piece color: {actualColor}, DB says user: {userId}");
+
+
+        if (userId != move.UserId)
+            return Ok(new { validMove = false, message = "Unauthorized move attempt" });
+
+        var result = _gameEngine.ValidateAndMovePiece(move.From, move.To, move.PieceType, piece.Color, board);
+
+        if (result.IsValid)
+        {
+            var updatedBoardState = _gameEngine.ConvertBoardToState(board);
+            _gameService.SaveBoardToDatabase(move.GameId, updatedBoardState);
+
+            return Ok(new { validMove = true, newPosition = result.NewPosition });
+        }
+
+        return Ok(new { validMove = false, message = result.Message });
     }
 
-    private static void SetTimer()
+    [HttpGet("users")]
+    public IActionResult GetUsers()
     {
-        // Create a timer with a two second interval.
-        aTimer = new System.Timers.Timer(2000);
-        // Hook up the Elapsed event for the timer. 
-        aTimer.Elapsed += OnTimedEvent;
-        aTimer.AutoReset = true;
-        aTimer.Enabled = true;
-    }
+        var users = new[]
+        {
+            new { userId = 1, username = "Adam" },
+            new { userId = 2, username = "Eve" },
+            new { userId = 3, username = "Matthew" },
+            new { userId = 4, username = "Paul" },
+            new { userId = 5, username = "John" }
+        };
 
-    private static void OnTimedEvent(Object source, ElapsedEventArgs e)
-    {
-        Console.WriteLine("The Elapsed event was raised at {0:HH:mm:ss.fff}",
-                          e.SignalTime);
+        return Ok(users);
     }
 }
 
-// New class to handle move requests
+public class CreateGameRequest
+{
+    public int Player1Id { get; set; }
+    public int Player2Id { get; set; }
+}
+
 public class MoveRequest
 {
     public Coord From { get; set; }
     public Coord To { get; set; }
-    public  PieceType PieceType { get; set; }
+    public PieceType PieceType { get; set; }
+    public PieceColor PieceColor { get; set; }
+    public int UserId { get; set; }
+    public int GameId { get; set; }
 }
 
 public class GameResponse
 {
     public int GameId { get; set; }
+    public int WhitePlayerId { get; set; }
+    public int BlackPlayerId { get; set; }
 }

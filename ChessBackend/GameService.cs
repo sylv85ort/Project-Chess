@@ -1,194 +1,188 @@
-﻿using System.Diagnostics;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using System.Data;
 
 namespace ChessBackend
 {
     public class GameService
     {
         private readonly IConfiguration _configuration;
-        private readonly GameEngine _gameEngine;
-        public ChessPiece SelectedPiece { get; private set; }
 
-        // Keep this for backward compatibility with frontend
-
-        public GameService(GameEngine gameEngine, IConfiguration configuration)
+        public GameService(IConfiguration configuration)
         {
-            _gameEngine = gameEngine;
             _configuration = configuration;
         }
 
-        public string GetConnectionString()
+        private string GetConnectionString() => _configuration.GetConnectionString("DefaultConnection");
+
+        public int StartNewGame(int user1Id, int user2Id)
         {
-            return _configuration.GetConnectionString("DefaultConnection");
-        }
+            int gameId = -1;
 
-        //private void InitializeBoard()
-        //{
-        //    var knight = new Knight(PieceColor.White);
-        //    board[currentPosition.X, currentPosition.Y] = knight;
-        //    knight.SetPosition(currentPosition);
-
-        //    // Add more pieces as needed
-        //    // Example: Add a black knight
-        //    Coord blackKnightPos = new Coord(7, 0);
-        //    var blackKnight = new Knight(PieceColor.Black); 
-        //    board[blackKnightPos.X, blackKnightPos.Y] = blackKnight;
-        //    blackKnight.SetPosition(blackKnightPos);
-        //}
-
-        //public Coord ValidateAndMoveKnight(Coord from, Coord to, ChessPiece[,] externalBoard = null)
-        //{
-        //    ChessPiece[,] boardToUse = externalBoard ?? this.board;
-
-        //    if (!IsValidCoordinate(from) || boardToUse[from.X, from.Y] == null)
-        //    {
-        //        return null;
-        //    }
-
-        //    ChessPiece piece = boardToUse[from.X, from.Y];
-
-        //    if (!(piece is Knight))
-        //    {
-        //        return null;
-        //    }
-
-
-        //    if (piece.CanMovePiece(to, boardToUse))
-        //    {
-
-        //        boardToUse[to.X, to.Y] = piece;
-        //        boardToUse[from.X, from.Y] = null;
-        //        piece.SetPosition(to);
-
-        //        if (piece.Color == PieceColor.White && piece is Knight)
-        //        {
-        //            currentPosition = to;
-        //        }
-
-        //        return to;
-        //    }
-
-        //    return null;
-        //}
-
-
-        //Currently not using.
-        //    public MoveResult ValidateAndMovePiece(Coord from, Coord to)
-        //{
-        //    // Check if coordinates are valid
-        //    if (!IsValidCoordinate(from) || !IsValidCoordinate(to))
-        //    {
-        //        return new MoveResult
-        //        {
-        //            IsValid = false,
-        //            Message = "Invalid coordinates"
-        //        };
-        //    }
-
-        //    // Check if there is a piece at the from position
-        //    ChessPiece piece = board[from.X, from.Y];
-        //    if (piece == null)
-        //    {
-        //        return new MoveResult
-        //        {
-        //            IsValid = false,
-        //            Message = "No piece at selected position"
-        //        };
-        //    }
-
-        //    // Check if the piece can move to the target position
-        //    if (piece.CanMovePiece(to, board))
-        //    {
-        //        // Perform the move
-        //        board[to.X, to.Y] = piece;
-        //        board[from.X, from.Y] = null;
-        //        piece.SetPosition(to);
-
-        //        // Update currentPosition for backward compatibility
-        //        if (piece.Color == PieceColor.White && piece is Knight)
-        //        {
-        //            currentPosition = to;
-        //        }
-
-        //        return new MoveResult
-        //        {
-        //            IsValid = true,
-        //            PieceType = piece.GetType().Name,
-        //            PieceColor = piece.Color.ToString()
-        //        };
-        //    }
-        //    else
-        //    {
-        //        return new MoveResult
-        //        {
-        //            IsValid = false,
-        //            Message = "Invalid move for this piece"
-        //        };
-        //    }
-        //}
-
-        public async Task<int> CreateGame()
-        {
-            var connectionString = _configuration.GetConnectionString("DefaultConnection");
-
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+            using (SqlCommand cmd = new SqlCommand("StartNewGame", connection))
             {
-                try
-                {
-                    await conn.OpenAsync();
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@User1ID", user1Id);
+                cmd.Parameters.AddWithValue("@User2ID", user2Id);
 
-                    // Insert new game
-                    string insertQuery = "INSERT INTO Games (gameStatus) VALUES ('waiting');";
-                    using (SqlCommand insertCmd = new SqlCommand(insertQuery, conn))
-                    {
-                        await insertCmd.ExecuteNonQueryAsync();
-                    }
-
-                    // Retrieve GameID
-                    string idQuery = "SELECT CAST(SCOPE_IDENTITY() AS INT);";
-                    using (SqlCommand idCmd = new SqlCommand(idQuery, conn))
-                    {
-                        var result = await idCmd.ExecuteScalarAsync();
-                        return Convert.ToInt32(result);
-                    }
-                }
-                catch (Exception ex)
+                SqlParameter outputParam = new SqlParameter("@GameID", SqlDbType.Int)
                 {
-                    Console.WriteLine("Error: " + ex.Message);
-                    throw; // rethrow to be handled by controller if needed
-                }
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(outputParam);
+
+                connection.Open();
+                cmd.ExecuteNonQuery();
+                gameId = (int)outputParam.Value;
             }
+
+            return gameId;
         }
 
-
-
-        // thiss basically reflect the current state of the board including position and type of each piece
-        public object GetBoardState()
+        public List<object> LoadGame(int gameId)
         {
-            var boardState = new List<object>();
+            var pieces = new List<object>();
 
-            for (int y = 0; y < 8; y++)
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
-                for (int x = 0; x < 8; x++)
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand("LoadGame", conn))
                 {
-                    ChessPiece piece = _gameEngine.board[x, y];
-                    if (piece != null)
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@GameID", gameId);
+
+                    using (var reader = cmd.ExecuteReader())
                     {
-                        boardState.Add(new
+                        while (reader.Read())
                         {
-                            position = new { x = x, y = y },
-                            pieceType = (int)piece.PieceType,
-                            pieceColor = piece.Color.ToString()
-                        });
+                            pieces.Add(new
+                            {
+                                position = new
+                                {
+                                    x = reader.GetInt32(reader.GetOrdinal("squareX")),
+                                    y = reader.GetInt32(reader.GetOrdinal("squareY"))
+                                },
+                                pieceType = reader.GetInt32(reader.GetOrdinal("pieceTypeID")),
+                                pieceColor = reader.GetString(reader.GetOrdinal("player_color"))
+                            });
+                        }
                     }
                 }
             }
 
-            return boardState;
+            return pieces;
+        }
+
+        public void SaveBoardToDatabase(int gameID, List<object> boardState)
+        {
+            using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+            {
+                connection.Open();
+
+                using (SqlCommand cmd = new SqlCommand("SaveFullBoardState", connection))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    cmd.Parameters.AddWithValue("@gameID", gameID);
+
+
+                    var pieceTable = new DataTable();
+                    pieceTable.Columns.Add("squareX", typeof(int));
+                    pieceTable.Columns.Add("squareY", typeof(int));
+                    pieceTable.Columns.Add("pieceTypeID", typeof(int));
+                    pieceTable.Columns.Add("gamePlayerID", typeof(int));
+                    pieceTable.Columns.Add("isCaptured", typeof(bool));
+
+                    foreach (var item in boardState)
+                    {
+                        dynamic piece = item;
+                        int playerIdForPiece = GetPlayerIdByColor(gameID, piece.pieceColor);
+
+                        pieceTable.Rows.Add(
+                            piece.position.x,
+                            piece.position.y,
+                            piece.pieceType,
+                            playerIdForPiece,
+                            false
+                        );
+                    }
+
+
+                    var param = cmd.Parameters.AddWithValue("@Pieces", pieceTable);
+                    param.SqlDbType = SqlDbType.Structured;
+                    param.TypeName = "dbo.PieceTableType";
+
+                    cmd.ExecuteNonQuery();
+                }
+            }
         }
 
 
+        public int GetPlayerIdByColor(int gameID, string color)
+        {
+            using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+            {
+                connection.Open();
+
+                using (SqlCommand cmd = new SqlCommand(
+                    "SELECT gamePlayerID FROM GamePlayers WHERE gameID = @gameID AND player_color = @color", connection))
+                {
+                    cmd.Parameters.AddWithValue("@gameID", gameID);
+                    cmd.Parameters.AddWithValue("@color", color);
+
+                    var result = cmd.ExecuteScalar();
+                    return result != null ? (int)result : -1;
+                }
+            }
+        }
+
+        public (int whiteId, int blackId) GetPlayerColors(int gameId)
+        {
+            using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+            {
+                connection.Open();
+
+                string sql = "SELECT userID, player_color FROM GamePlayers WHERE gameID = @gameID";
+                using (SqlCommand cmd = new SqlCommand(sql, connection))
+                {
+                    cmd.Parameters.AddWithValue("@gameID", gameId);
+
+                    int whiteId = 0;
+                    int blackId = 0;
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int userId = reader.GetInt32(0);
+                            string color = reader.GetString(1);
+
+                            if (color == "White") whiteId = userId;
+                            else if (color == "Black") blackId = userId;
+                        }
+                    }
+
+                    return (whiteId, blackId);
+                }
+            }
+        }
+
+
+        public int GetUserIdByGamePlayer(int gamePlayerID)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                using (SqlCommand cmd = new SqlCommand("SELECT userID FROM GamePlayers WHERE gamePlayerID = @id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", gamePlayerID);
+                    var result = cmd.ExecuteScalar();
+                    return result != null ? (int)result : -1;
+                }
+            }
+        }
     }
 }

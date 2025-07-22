@@ -1,0 +1,38 @@
+
+<div class="user-switcher">
+  <label for="userSelect">Active User:</label>
+  <select [(ngModel)]="activeUserId" name="userSelect">
+    <option [ngValue]="1">User 1</option>
+    <option [ngValue]="2">User 2 (White)</option>
+    <option [ngValue]="3">User 3</option>
+    <option [ngValue]="4">User 4 (Black)</option>
+    <option [ngValue]="5">User 5</option>
+  </select>
+</div>
+
+<p>DEBUG: ActiveUserId = {{ activeUserId }}</p>
+<p *ngIf="gameResponse">White Player = {{ gameResponse.whitePlayerId }}</p>
+<p *ngIf="gameResponse">Black Player = {{ gameResponse.blackPlayerId }}</p>
+
+
+
+<label>Player 1 ID:
+  <input #p1Input type="number">
+</label>
+
+<label>Player 2 ID:
+  <input #p2Input type="number">
+</label>
+
+<button (click)="startGame(p1Input.valueAsNumber, p2Input.valueAsNumber)">Start Game</button>
+
+<div *ngIf="gameId !== null">
+  <p>Game Created! Game ID: {{ gameId }}</p>
+
+  <!-- show board only when game exists -->
+  <div class="container">
+    <div class="chessboard">
+      <app-container [gameId]="gameId" [activeUserId]="activeUserId"></app-container>
+    </div>
+  </div>
+</div>

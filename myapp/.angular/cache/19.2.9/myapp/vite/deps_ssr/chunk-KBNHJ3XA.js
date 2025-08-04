@@ -1,16 +1,16 @@
 import { createRequire } from 'module';const require = createRequire(import.meta.url);
 import {
-  ROUTES,
-  Router,
-  loadChildren
-} from "./chunk-CB2U7YI6.js";
-import {
   INITIAL_CONFIG,
   SERVER_CONTEXT,
   platformServer,
   renderApplication,
   renderModule
 } from "./chunk-2ALSPJTJ.js";
+import {
+  ROUTES,
+  Router,
+  loadChildren
+} from "./chunk-CB2U7YI6.js";
 import {
   APP_BASE_HREF,
   PlatformLocation
@@ -11987,4 +11987,4 @@ export {
   AngularAppEngine,
   createRequestHandler
 };
-//# sourceMappingURL=chunk-7SER6XDB.js.map
+//# sourceMappingURL=chunk-KBNHJ3XA.js.map

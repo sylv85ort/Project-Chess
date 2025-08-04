@@ -2,6 +2,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System.Data;
+using System.Text.Json;
 
 namespace ChessBackend
 {
@@ -119,6 +120,53 @@ namespace ChessBackend
             }
         }
 
+        public void SaveSnapshot(int gameID, int turnNumber, List<object> boardState)
+        {
+            string boardJson = JsonSerializer.Serialize<object>(boardState);
+
+            using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+            {
+                connection.Open();
+                using (SqlCommand cmd = new SqlCommand("SaveBoardSnapshot", connection))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@gameID", gameID);
+                    cmd.Parameters.AddWithValue("@turnNumber", turnNumber);
+                    cmd.Parameters.AddWithValue("@boardState", boardJson);
+
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public List<List<object>> GetSnapshots(int gameID)
+        {
+            List<List<object>> boardStates = new List<List<object>>();
+
+            using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+            {
+                connection.Open();
+                using (SqlCommand cmd = new SqlCommand("SELECT boardState FROM GameBoardSnapshots WHERE gameID = @gameID ORDER BY turnNumber", connection))
+                {
+                    //cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@gameID", gameID);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            string json = reader.GetString(0);
+                            var snapshot = JsonSerializer.Deserialize<List<object>>(json);
+                            boardStates.Add(snapshot);
+                        }
+                    }
+
+                    return (boardStates);
+                }
+            }
+        }
+
+        //SELECT boardState FROM GameBoardSnapshots WHERE gameID = @gameID
 
         public int GetPlayerIdByColor(int gameID, string color)
         {

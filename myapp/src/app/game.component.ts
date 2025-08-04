@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 @Component({
+  standalone: true,
   selector: 'app-game',
     imports: [FormsModule, ContainerComponent, CommonModule],
   templateUrl: './game.component.html'

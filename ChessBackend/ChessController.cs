@@ -40,6 +40,21 @@ public class ChessController : ControllerBase
             return StatusCode(500, new { error = "Failed to create game", detail = ex.Message });
         }
     }
+    [HttpPost("replay-game")]
+    public IActionResult StartReplay([FromBody] CreateReplayRequest request)
+    {
+        try
+        {
+            var initialBoard = _gameEngine.GetInitialBoardState();
+            this.GetSnapshots(request.GameId);
+            return Ok(request
+            );
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Failed to replay game", detail = ex.Message });
+        }
+    }
 
     [HttpGet("game-details")]
     public IActionResult GetDetails([FromQuery] int gameId)
@@ -66,6 +81,17 @@ public class ChessController : ControllerBase
         {
             return StatusCode(500, new { error = "Failed to load game", detail = ex.Message });
         }
+    }
+    [HttpGet ("GetSnapshots")]
+    public IActionResult GetSnapshots(int gameId)
+    {
+        var snapshots = _gameService.GetSnapshots(gameId);
+
+        if (snapshots == null | snapshots.Count == 0)
+        {
+            return NotFound("No game of this ID available");
+        }
+        return Ok(snapshots);
     }
 
     [HttpPost("MovePiece")]
@@ -94,6 +120,7 @@ public class ChessController : ControllerBase
         {
             var updatedBoardState = _gameEngine.ConvertBoardToState(board);
             _gameService.SaveBoardToDatabase(move.GameId, updatedBoardState);
+            _gameService.SaveSnapshot(move.GameId, move.turnNumber, updatedBoardState);
 
             return Ok(new { validMove = true, newPosition = result.NewPosition });
         }
@@ -123,6 +150,11 @@ public class CreateGameRequest
     public int Player2Id { get; set; }
 }
 
+public class CreateReplayRequest
+{
+    public int GameId { get; set; }
+}
+
 public class MoveRequest
 {
     public Coord From { get; set; }
@@ -131,6 +163,7 @@ public class MoveRequest
     public PieceColor PieceColor { get; set; }
     public int UserId { get; set; }
     public int GameId { get; set; }
+    public int turnNumber { get; set; }
 }
 
 public class GameResponse

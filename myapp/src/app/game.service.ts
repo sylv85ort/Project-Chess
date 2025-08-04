@@ -18,6 +18,10 @@ export class GameService {
     return this.http.post<GameResponse>(`${this.apiUrl}/Chess/create-game`, request);
   }
 
+  startReplay(request: CreateReplayRequest): Observable<GameResponse> {
+    return this.http.post<GameResponse>(`${this.apiUrl}/Chess/replay-game`, request);
+  }
+
   setGameId(gameId: number): void {
     this.currentGameId = gameId;
     localStorage.setItem('gameId', gameId.toString());
@@ -27,6 +31,10 @@ export class GameService {
     return this.http.get<any[]>(`${this.apiUrl}/Chess/GetBoard?gameId=${gameId}`);
   }
 
+  
+  getReplayByGameId(gameId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/Chess/GetSnapshots?gameId=${gameId}`);
+  }
 
   getGameId(): number | null {
     if (this.currentGameId) return this.currentGameId;
@@ -71,6 +79,10 @@ export class GameService {
 export interface CreateGameRequest {
   player1Id: number;
   player2Id: number;
+}
+
+export interface CreateReplayRequest {
+  gameId: number;
 }
 
 export interface GameResponse {

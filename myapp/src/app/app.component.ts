@@ -9,13 +9,16 @@ import { PawnComponent } from './chessboard/pawn.component';
 import { CreateGameRequest, GameResponse, GameService } from './game.service';
 import { GameComponent } from './game.component';
 import { RouterModule } from '@angular/router';
+import { ReplayMenuComponent } from './replaymenu.component';
+import { ReplayBoardComponent } from './chessboard/replay.component';
 
 @Component({
+  standalone: true,
   selector: 'app-root',
   imports: [
     KnightComponent, SquareComponent, CommonModule,
     ContainerComponent,
-    BoardComponent,PawnComponent, GameComponent, RouterModule
+    BoardComponent,PawnComponent, GameComponent, ReplayMenuComponent, RouterModule
 ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
@@ -23,7 +26,7 @@ import { RouterModule } from '@angular/router';
 })
 
 export class AppComponent implements OnInit {
-  title = 'myapp';
+  title = 'Chess Game';
   message = 'aaaaaaaaaaaaaaaaaaaaaaaaa';
 
   constructor(private http: HttpClient) {}

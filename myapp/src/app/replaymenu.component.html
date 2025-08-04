@@ -1,0 +1,37 @@
+
+<!-- <div class="user-switcher">
+  <label for="userSelect">Active User:</label>
+  <select [(ngModel)]="activeUserId" name="userSelect">
+    <option [ngValue]="1">User 1</option>
+    <option [ngValue]="2">User 2</option>
+    <option [ngValue]="3">User 3</option>
+    <option [ngValue]="4">User 4</option>
+    <option [ngValue]="5">User 5</option>
+  </select>
+</div> -->
+
+<p>DEBUG: ActiveUserId = {{ activeUserId }}</p>
+<p *ngIf="gameResponse">White Player = {{ gameResponse.whitePlayerId }}</p>
+<p *ngIf="gameResponse">Black Player = {{ gameResponse.blackPlayerId }}</p>
+<p *ngIf="gameResponse">gameId = {{ gameResponse.gameId}}</p>
+
+<label>Welcome to Replay Menu!</label>
+
+<label>Replay Game ID:
+  <input #gameInput type="number">
+</label>
+
+<button (click)="startGame(gameInput.valueAsNumber)">Start Game</button>
+
+<div *ngIf="gameId !== null">
+  <p>Game Replaying! Game ID: {{ gameId }}</p>
+
+  <!-- show board only when game exists -->
+<div *ngIf="currentSnapshot.length > 0" >
+  <p>Game Replaying! Game ID: {{ gameId }}</p>
+  <replay-container
+    [snapshot]="currentSnapshot"
+    [gameId]="gameId"
+    [activeUserId]="activeUserId">
+  </replay-container>
+</div>

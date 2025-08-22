@@ -9,6 +9,7 @@ public class ChessController : ControllerBase
 {
     private readonly GameService _gameService;
     private readonly GameEngine _gameEngine;
+    public String gameStatus = "";
 
     public ChessController(GameService gameService, GameEngine gameEngine)
     {
@@ -24,6 +25,7 @@ public class ChessController : ControllerBase
             int newGameId = _gameService.StartNewGame(request.Player1Id, request.Player2Id);
 
             var initialBoard = _gameEngine.GetInitialBoardState();
+            gameStatus = "In Progress";
             _gameService.SaveBoardToDatabase(newGameId, initialBoard);
 
             var (whiteId, blackId) = _gameService.GetPlayerColors(newGameId);
@@ -99,6 +101,7 @@ public class ChessController : ControllerBase
     {
         var dbPieces = _gameService.LoadGame(move.GameId);
         var board = _gameEngine.BuildBoard(dbPieces);
+        var gameStatus = _gameService.GetGameStatus(move.GameId);
 
         var piece = board[move.From.X, move.From.Y];
         if (piece == null)
@@ -114,14 +117,21 @@ public class ChessController : ControllerBase
         if (userId != move.UserId)
             return Ok(new { validMove = false, message = "Unauthorized move attempt" });
 
-        var result = _gameEngine.ValidateAndMovePiece(move.From, move.To, move.PieceType, piece.Color, board);
+        var result = _gameEngine.ValidateAndMovePiece(
+            move.From, move.To, move.PieceType, piece.Color, gameStatus, board);
+
+        if (result.Message == "Checkmate!" || result.Message == "Stalemate!")
+        {
+            var status = result.Message == "Checkmate!" ? "Finished" : "Stalemate";
+            int? winner = result.Message == "Checkmate!" ? userId : (int?)null;
+            _gameService.DeclareGameResult(move.GameId, winner, status);
+        }
 
         if (result.IsValid)
         {
-            var updatedBoardState = _gameEngine.ConvertBoardToState(board);
-            _gameService.SaveBoardToDatabase(move.GameId, updatedBoardState);
-            _gameService.SaveSnapshot(move.GameId, move.turnNumber, updatedBoardState);
-
+            var updated = _gameEngine.ConvertBoardToState(board);
+            _gameService.SaveBoardToDatabase(move.GameId, updated);
+            _gameService.SaveSnapshot(move.GameId, move.turnNumber, updated);
             return Ok(new { validMove = true, newPosition = result.NewPosition });
         }
 

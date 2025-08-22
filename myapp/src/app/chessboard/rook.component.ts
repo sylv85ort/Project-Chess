@@ -9,7 +9,7 @@ import { Component, Input } from "@angular/core";
     template: `
     <div>
       <span [ngStyle]="{ color: color === 'White' ? 'white' : 'black' }">
-      ♔
+      ♖
       </span>
     </div>
   `,

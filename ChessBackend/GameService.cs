@@ -133,7 +133,6 @@ namespace ChessBackend
                     cmd.Parameters.AddWithValue("@gameID", gameID);
                     cmd.Parameters.AddWithValue("@turnNumber", turnNumber);
                     cmd.Parameters.AddWithValue("@boardState", boardJson);
-
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -185,6 +184,41 @@ namespace ChessBackend
                 }
             }
         }
+
+        public void DeclareGameResult(int gameId, int? winnerUserId, string gameStatus)
+        {
+            using (var connection = new SqlConnection(GetConnectionString()))
+            using (var command = new SqlCommand("DeclareGameResult", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@GameId", gameId);
+
+                if (winnerUserId.HasValue)
+                {
+                    command.Parameters.AddWithValue("@WinnerUserId", winnerUserId.Value);
+                }
+                else
+                {
+                    command.Parameters.AddWithValue("@WinnerUserId", DBNull.Value);
+                }
+
+                command.Parameters.AddWithValue("@gameStatus", gameStatus);
+
+                connection.Open();
+                command.ExecuteNonQuery();
+            }
+        }
+        public string GetGameStatus(int gameId)
+        {
+            using var conn = new SqlConnection(GetConnectionString());
+            using var cmd = new SqlCommand("SELECT gameStatus FROM Games WHERE gameID = @id", conn);
+            cmd.Parameters.AddWithValue("@id", gameId);
+            conn.Open();
+            var val = cmd.ExecuteScalar() as string;
+            return string.IsNullOrEmpty(val) ? "In Progress" : val;
+        }
+
+
 
         public (int whiteId, int blackId) GetPlayerColors(int gameId)
         {

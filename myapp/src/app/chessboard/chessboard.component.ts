@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnInit, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
 import { SquareComponent } from './square.component';
 import { KnightComponent } from './knight.component';
 import { CommonModule } from '@angular/common';
@@ -63,8 +63,11 @@ import { KingComponent } from './king.component ';
 export class BoardComponent implements OnInit, OnChanges {
   @Input() gameId!: number;
   @Input() activeUserId!: number;
+  @Output() gameEnded = new EventEmitter<string>();
   board: any[][] = Array.from({ length: 8 }, () => Array(8).fill(null));
   selectedPiece$ = new BehaviorSubject<Coord | null>(null);
+  endGameMessage: string = '';
+  gameOver: boolean = false;
 
   constructor(private game: GameService) {}
 
@@ -97,13 +100,28 @@ export class BoardComponent implements OnInit, OnChanges {
     if (selected) {
       const piece = this.board[selected.y][selected.x];
       if (piece) {
-        this.game.movePiece(piece.pieceType, selected, pos, this.activeUserId, this.gameId, piece.pieceColor, (success) => {
-          if (success) {
-            this.loadBoard();
-          }
+        this.game.movePiece(piece.pieceType, selected, pos, this.activeUserId, this.gameId, piece.pieceColor, (res) => {
+  if (res.validMove) {
+    if (res.message === "Checkmate!") {
+      this.game.declareGameResult(this.gameId, this.activeUserId).subscribe();
+      this.gameEnded.emit(`Checkmate! Player ${res.pieceColor} wins!`);
+    } else if (res.message === "Stalemate!") {
+      this.game.declareGameResult(this.gameId, null).subscribe();
+      this.gameEnded.emit("Stalemate!");
+    }
+
+    this.loadBoard();
+  } else {
+    console.log("Move rejected:", res.message);
+    alert("Invalid move: " + res.message);
+  }
+  this.selectedPiece$.next(null);
         });
       }
+      
       this.selectedPiece$.next(null);
+
+      
     }
   }
 
@@ -121,10 +139,18 @@ export class BoardComponent implements OnInit, OnChanges {
   standalone: true,
   selector: 'app-container',
   imports: [BoardComponent],
-  template: `<div class="container"><app-board [gameId]="gameId!" [activeUserId]="activeUserId!"></app-board></div>`,
+  template: `<div class="container"><app-board 
+  [gameId]="gameId!" [activeUserId]="activeUserId!"
+  (gameEnded)="onGameEnded($event)" 
+  ></app-board></div>`,
   styleUrls: ['./container.component.scss']
 })
 export class ContainerComponent {
 @Input() gameId!: number | null;
 @Input() activeUserId!: number;
+@Output() gameEnded = new EventEmitter<string>();
+onGameEnded(message: string) {
+  console.log("Container caught:", message); // TEMP DEBUG
+  this.gameEnded.emit(message);
+}
 }

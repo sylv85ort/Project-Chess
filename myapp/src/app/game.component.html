@@ -3,9 +3,9 @@
   <label for="userSelect">Active User:</label>
   <select [(ngModel)]="activeUserId" name="userSelect">
     <option [ngValue]="1">User 1</option>
-    <option [ngValue]="2">User 2 (White)</option>
+    <option [ngValue]="2">User 2</option>
     <option [ngValue]="3">User 3</option>
-    <option [ngValue]="4">User 4 (Black)</option>
+    <option [ngValue]="4">User 4</option>
     <option [ngValue]="5">User 5</option>
   </select>
 </div>
@@ -24,6 +24,10 @@
   <input #p2Input type="number">
 </label>
 
+<div *ngIf="endGameMessage" class="endgame-banner">
+        {{ endGameMessage }}
+      </div>
+
 <button (click)="startGame(p1Input.valueAsNumber, p2Input.valueAsNumber)">Start Game</button>
 
 <div *ngIf="gameId !== null">
@@ -32,7 +36,8 @@
   <!-- show board only when game exists -->
   <div class="container">
     <div class="chessboard">
-      <app-container [gameId]="gameId" [activeUserId]="activeUserId"></app-container>
+      <app-container [gameId]="gameId" [activeUserId]="activeUserId" (gameEnded)="onGameEnded($event)"></app-container>
+      
     </div>
   </div>
 </div>

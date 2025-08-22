@@ -1,5 +1,7 @@
-﻿using System.Data.SqlTypes;
+﻿using System.ComponentModel;
+using System.Data.SqlTypes;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using Microsoft.Data.SqlClient;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -25,6 +27,7 @@ namespace ChessBackend
         public int gamePlayerID { get; set; }
         public int isCaptured { get; set; }
 
+        public bool hasMoved { get; set; } = false;
         public ChessPiece(Coord position, PieceColor color, PieceType pieceType, int pieceID)
         {
             CurrentPosition = position;
@@ -75,9 +78,9 @@ namespace ChessBackend
             int dx = to.X - CurrentPosition.X;
             int dy = to.Y - CurrentPosition.Y;
 
-            //bool is2Move = (Math.Abs(dx) == 2);
+            if (dy != 0) return false;
 
-            //if (!is2Move) return false;
+
             if (Color == PieceColor.White && dx >= 0)
                 return false; // White can't move backward or stay
             if (Color == PieceColor.Black && dx <= 0)
@@ -238,61 +241,28 @@ namespace ChessBackend
             int x = CurrentPosition.X + stepX;
             int y = CurrentPosition.Y + stepY;
 
-
-            if (dx != 0)
+            // Keep moving step-by-step until reaching the destination (but not on it)
+            while (x != to.X || y != to.Y)
             {
-                while (x != to.X)
+                if (x < 0 || x >= 8 || y < 0 || y >= 8)
+                    return false;
+
+                if (board[x, y] != null)
                 {
-                    if (x < 0 || x >= 8)
-                    {
-                        return false;
-                    }
-                    if (board[x, y] != null)
-                    {
-                        Debug.WriteLine("WHat rgrthe fuck");
-                        return false;
-                    }
-                    x += stepX;
+                    Debug.WriteLine("Path is blocked");
+                    return false;
                 }
-            } else if (y != to.Y)
-            {   while (y != to.Y)
-                {
-                    if (y < 0 || y >= 8)
-                    {
-                        return false;
-                    }
-                    if (board[x, y] != null)
-                    {
-                        Debug.WriteLine("WHat rgthe fuck");
-                        return false;
-                    }
-                    y += stepY;
-                }
-            } else
-                while (x != to.X && y != to.Y)
-                {
-                    if (x < 0 || x >= 8 || y < 0 || y >= 8)
-                    {
-                        return false; // Don't go off the board
-                    }
 
+                x += stepX;
+                y += stepY;
+            }
 
-
-                    if (board[x, y] != null)
-                    {
-                        Debug.WriteLine("WHat the fuck");
-                        return false;
-                    }
-
-                    x += stepX;
-                    y += stepY;
-                }
+            // Final square check: can’t capture own piece
             ChessPiece target = board[to.X, to.Y];
             if (target != null && target.Color == this.Color)
-                return false;  // Can't capture own piece
+                return false;
 
             return true;
-
         }
 
         public bool CanMoveKing(Coord to, ChessPiece[,] board)

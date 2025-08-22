@@ -16,6 +16,8 @@ export class GameComponent implements OnInit{
   activeUserId: number = 2;
   gameId: number | null = null;
   gameResponse: any;
+  public endGameMessage: string = '';
+
 
   constructor(private chessService: GameService,
     private route: ActivatedRoute,
@@ -74,5 +76,10 @@ export class GameComponent implements OnInit{
         console.error('Failed to create game:', err);
       }
     });
+  }
+
+  onGameEnded(message: string): void {
+    console.log("CHECKMATE MESSAGE:", message);
+    this.endGameMessage = message;
   }
 }

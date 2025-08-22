@@ -47,6 +47,11 @@ export class GameService {
     return this.http.get<GameResponse>(`${this.apiUrl}/Chess/game-details?gameId=${gameId}`);
   }
 
+  declareGameResult(gameId: number, winnerUserId: number | null): Observable<any> {
+  return this.http.post(`${this.apiUrl}/Chess/DeclareGameResult`, { gameId, winnerUserId });
+}
+
+
   movePiece(
     pieceType: number,
     from: Coord,
@@ -54,23 +59,18 @@ export class GameService {
     userId: number,
     gameId: number,
     pieceColor: string,
-    onDone: (success: boolean) => void
+    onDone: (res: { validMove: boolean; message: string; newPosition: Coord, pieceColor: string }) => void
   ): void {
     const body = { pieceType, from, to, userId, gameId, pieceColor };
-    this.http.post<{ validMove: boolean; message: string; newPosition: Coord }>(
+    this.http.post<{ validMove: boolean; message: string; newPosition: Coord, pieceColor: string }>(
       `${this.apiUrl}/Chess/MovePiece`, body
     ).subscribe({
       next: res => {
-        if (res.validMove) {
-          onDone(true);
-        } else {
-          console.log('Invalid move:', res.message);
-          onDone(false);
-        }
+        onDone(res);
       },
       error: err => {
         console.error('API error moving piece:', err);
-        onDone(false);
+        onDone({ validMove: false, message: 'Error', newPosition: from, pieceColor: pieceColor });
       }
     });
   }

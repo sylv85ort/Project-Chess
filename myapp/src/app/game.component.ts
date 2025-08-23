@@ -64,6 +64,7 @@ export class GameComponent implements OnInit{
       player1Id: player1Id,
       player2Id: player2Id
     };
+        this.endGameMessage = "";
 
     this.chessService.startNewGame(request).subscribe({
       next: (response: GameResponse) => {
@@ -79,7 +80,7 @@ export class GameComponent implements OnInit{
   }
 
   onGameEnded(message: string): void {
-    console.log("CHECKMATE MESSAGE:", message);
+    console.log("CHECKMATE MESSAGE:" + message);
     this.endGameMessage = message;
   }
 }

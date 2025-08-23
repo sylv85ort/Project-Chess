@@ -90,3 +90,8 @@ export interface GameResponse {
   whitePlayerId: number,
   blackPlayerId: number
 }
+
+export interface MoveResponse {
+  validMove: boolean;
+  message: string;
+}

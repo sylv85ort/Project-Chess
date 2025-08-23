@@ -102,10 +102,6 @@ namespace ChessBackend
                 return (Math.Abs(dx) == 1);
             }
 
-            //PROMOTION IS EASYYYYY
-            //CHECK IF WHITE THEN CHECK on 6 AND VICE VERSA
-            //IF TRUE CHANGE TYPE TO ANOTHER TYPE NA MEAN
-            //SET IS PROMOTED TO YES 
             ChessPiece target = board[to.X, to.Y];
             if (target != null && target.Color == this.Color)
                 return false;  // Can't capture own piece

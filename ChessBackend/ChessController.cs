@@ -35,6 +35,7 @@ public class ChessController : ControllerBase
                 GameId = newGameId,
                 WhitePlayerId = whiteId,
                 BlackPlayerId = blackId
+            
             });
         }
         catch (Exception ex)
@@ -122,6 +123,7 @@ public class ChessController : ControllerBase
 
         if (result.Message == "Checkmate!" || result.Message == "Stalemate!")
         {
+            Debug.WriteLine("So its either a checkmate or a stalemate");
             var status = result.Message == "Checkmate!" ? "Finished" : "Stalemate";
             int? winner = result.Message == "Checkmate!" ? userId : (int?)null;
             _gameService.DeclareGameResult(move.GameId, winner, status);
@@ -132,7 +134,7 @@ public class ChessController : ControllerBase
             var updated = _gameEngine.ConvertBoardToState(board);
             _gameService.SaveBoardToDatabase(move.GameId, updated);
             _gameService.SaveSnapshot(move.GameId, move.turnNumber, updated);
-            return Ok(new { validMove = true, newPosition = result.NewPosition });
+            return Ok(new { validMove = true, newPosition = result.NewPosition, message = result.Message });
         }
 
         return Ok(new { validMove = false, message = result.Message });

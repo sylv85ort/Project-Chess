@@ -23,15 +23,14 @@
 <label>Player 2 ID:
   <input #p2Input type="number">
 </label>
-
-<div *ngIf="endGameMessage" class="endgame-banner">
-        {{ endGameMessage }}
-      </div>
-
+    
 <button (click)="startGame(p1Input.valueAsNumber, p2Input.valueAsNumber)">Start Game</button>
-
+  <p>Hi everyone</p>
 <div *ngIf="gameId !== null">
   <p>Game Created! Game ID: {{ gameId }}</p>
+  <div *ngIf="endGameMessage !== null" class="endgame-banner"
+      ><p>endGameMessage = {{ endGameMessage }}</p></div>
+
 
   <!-- show board only when game exists -->
   <div class="container">

@@ -105,8 +105,9 @@ public class ChessController : ControllerBase
         var gameStatus = _gameService.GetGameStatus(move.GameId);
 
         var piece = board[move.From.X, move.From.Y];
-        if (piece == null)
+        if (piece == null) {
             return Ok(new { validMove = false, message = "No piece at selected position" });
+        }    
 
         string actualColor = piece.Color.ToString();
         int playerId = _gameService.GetPlayerIdByColor(move.GameId, actualColor);
@@ -115,8 +116,9 @@ public class ChessController : ControllerBase
         Debug.WriteLine($"Move requested by User {move.UserId}, piece color: {actualColor}, DB says user: {userId}");
 
 
-        if (userId != move.UserId)
+        if (userId != move.UserId) {
             return Ok(new { validMove = false, message = "Unauthorized move attempt" });
+        }
 
         var result = _gameEngine.ValidateAndMovePiece(
             move.From, move.To, move.PieceType, piece.Color, gameStatus, board);

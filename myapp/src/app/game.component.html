@@ -25,7 +25,10 @@
 </label>
     
 <button (click)="startGame(p1Input.valueAsNumber, p2Input.valueAsNumber)">Start Game</button>
-  <p>Hi everyone</p>
+<button (click)="changeTheme()">Theme: {{ currentThemeName }}</button>
+
+
+
 <div *ngIf="gameId !== null">
   <p>Game Created! Game ID: {{ gameId }}</p>
   <div *ngIf="endGameMessage !== null" class="endgame-banner"
@@ -35,7 +38,7 @@
   <!-- show board only when game exists -->
   <div class="container">
     <div class="chessboard">
-      <app-container [gameId]="gameId" [activeUserId]="activeUserId" (gameEnded)="onGameEnded($event)"></app-container>
+      <app-container [gameId]="gameId" [activeUserId]="activeUserId" [theme]="currentTheme" (gameEnded)="onGameEnded($event)"></app-container>
       
     </div>
   </div>

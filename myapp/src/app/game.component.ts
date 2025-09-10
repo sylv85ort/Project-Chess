@@ -5,14 +5,28 @@ import { ContainerComponent } from './chessboard/chessboard.component';
 import { ActivatedRoute, Router} from '@angular/router'
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SquareComponent } from './chessboard/square.component';
+
+const THEMES = {
+        classic: { dark: '#769656', light: '#eeeed2' },
+        red:     { dark: '#a33636ff', light: '#e0cbd8ff' },
+        aqua:    { dark: '#315ff7ff', light: '#b0e1ffff'}
+} as const;
+
+type ThemeName = keyof typeof THEMES;
+type Theme = { light: string; dark: string };
+
 
 @Component({
   standalone: true,
   selector: 'app-game',
-    imports: [FormsModule, ContainerComponent, CommonModule],
+    imports: [FormsModule, ContainerComponent, CommonModule, SquareComponent],
   templateUrl: './game.component.html'
 })
+
 export class GameComponent implements OnInit{
+  currentThemeName: ThemeName = 'classic';
+  currentTheme: Theme = THEMES[this.currentThemeName];  
   activeUserId: number = 2;
   gameId: number | null = null;
   gameResponse: any;
@@ -57,7 +71,16 @@ export class GameComponent implements OnInit{
       this.activeUserId = id;
       console.log('[GameComponent] Active user switched to:', this.activeUserId);
     }
-
+  
+  changeTheme(){
+if (this.currentThemeName === 'classic') {
+  this.currentThemeName = 'red';
+} else if (this.currentThemeName === 'red') {
+  this.currentThemeName = 'aqua';
+} else {
+  this.currentThemeName = 'classic';
+}    this.currentTheme = THEMES[this.currentThemeName];
+  }
 
   startGame(player1Id: number, player2Id: number): void {
     const request: CreateGameRequest = {

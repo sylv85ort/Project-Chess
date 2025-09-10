@@ -7,13 +7,25 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReplayBoardComponent, ReplayContainerComponent } from './chessboard/replay.component';
 
+const THEMES = {
+        classic: { dark: '#769656', light: '#eeeed2' },
+        red:     { dark: '#a33636ff', light: '#e0cbd8ff' },
+        aqua:    { dark: '#315ff7ff', light: '#b0e1ffff'}
+} as const;
+
+type ThemeName = keyof typeof THEMES;
+type Theme = { light: string; dark: string };
+
 @Component({
     standalone: true,
   selector: 'replay-menu',
     imports: [CommonModule, ReplayBoardComponent, ReplayContainerComponent],
   templateUrl: './replaymenu.component.html'
 })
+
 export class ReplayMenuComponent implements OnInit{
+  currentThemeName: ThemeName = 'classic';
+  currentTheme: Theme = THEMES[this.currentThemeName];  
   activeUserId: number = 2;
   gameResponse: any;
   interval: any | undefined;
@@ -92,6 +104,16 @@ export class ReplayMenuComponent implements OnInit{
       this.activeUserId = id;
       console.log('[GameComponent] Active user switched to:', this.activeUserId);
     }
+
+  changeTheme(){
+    if (this.currentThemeName === 'classic') {
+      this.currentThemeName = 'red';
+    } else if (this.currentThemeName === 'red') {
+      this.currentThemeName = 'aqua';
+    } else {
+      this.currentThemeName = 'classic';
+    }    this.currentTheme = THEMES[this.currentThemeName];
+  }
 
 
   startGame(gameId: number): void {

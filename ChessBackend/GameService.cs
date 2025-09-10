@@ -141,13 +141,11 @@ namespace ChessBackend
         public List<List<object>> GetSnapshots(int gameID)
         {
             List<List<object>> boardStates = new List<List<object>>();
-
             using (SqlConnection connection = new SqlConnection(GetConnectionString()))
             {
                 connection.Open();
                 using (SqlCommand cmd = new SqlCommand("SELECT boardState FROM GameBoardSnapshots WHERE gameID = @gameID ORDER BY turnNumber", connection))
                 {
-                    //cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@gameID", gameID);
 
                     using (SqlDataReader reader = cmd.ExecuteReader())
@@ -165,7 +163,6 @@ namespace ChessBackend
             }
         }
 
-        //SELECT boardState FROM GameBoardSnapshots WHERE gameID = @gameID
 
         public int GetPlayerIdByColor(int gameID, string color)
         {

@@ -20,27 +20,33 @@ import { KnightComponent } from './knight.component';
 export class SquareComponent {
     @Input() black?: boolean;
     @Input() pieceColor!: string; // Color of the piece (White or Black)
+    @Input() theme!: { light: string; dark: string };
     
     getStyle() {
-      const squareColor = this.black ? 'black' : 'white';
-      const styles: any = {
-        backgroundColor: squareColor === 'black' ? '#769656' : '#eeeed2',  // Green for black squares, light beige for white squares
-      };
+    const themes = {
+        classic: { dark: '#769656', light: '#eeeed2' },
+        red:     { dark: '#a33636ff', light: '#e0cbd8ff' },
+        aqua: { dark: '#210e9dff', light: '#b0e1ffff'}
+    };
+    let currentTheme = themes.classic;
+  const isDark = this.black; // your square logic
+  const bgColor = isDark ? this.theme.dark : this.theme.light;
+
+  const styles: any = {
+    backgroundColor: bgColor,
+  };
     
-      if (this.pieceColor === 'black') {
-        styles.color = 'black';
-        if (squareColor === 'black') {
-          styles.textShadow = '1px 1px 0 white';  // Make black pieces stand out on black squares
-        }
-      } else if (this.pieceColor === 'white') {
-        styles.color = 'white';  // Set the piece color to white
-      } else {
-        // Default fallback logic when pieceColor is not provided
-        styles.color = squareColor === 'black' ? 'white' : 'black';
+    if (this.pieceColor === 'black') {
+      styles.color = 'black';
+      if (isDark) {
+        styles.textShadow = '1px 1px 0 white';
       }
-    
-      return styles;
+    } else if (this.pieceColor === 'white') {
+        styles.color = 'white';
+    } else {
+      styles.color = isDark ? 'white' : 'black';
     }
-    
-      
-    }
+
+    return styles;
+  }
+}

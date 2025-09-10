@@ -11,6 +11,8 @@ import { RookComponent } from './rook.component';
 import { QueenComponent } from './queen.component';
 import { KingComponent } from './king.component ';
 import { ReplayMenuComponent } from '../replaymenu.component';
+type Theme = { light: string; dark: string };
+
 
 @Component({
       standalone: true,
@@ -21,9 +23,10 @@ import { ReplayMenuComponent } from '../replaymenu.component';
     <div class="chessboard">
       <div *ngFor="let y of [0,1,2,3,4,5,6,7]" class="row">
         <app-square
-          *ngFor="let x of [0,1,2,3,4,5,6,7]"
+         *ngFor="let x of [0,1,2,3,4,5,6,7]"
           [black]="isBlack({ x, y })"
           [pieceColor]="board[y][x]?.pieceColor"
+          [theme]="theme"
         >
           <app-knight
             *ngIf="board[y][x]?.pieceType === 1"
@@ -58,6 +61,7 @@ import { ReplayMenuComponent } from '../replaymenu.component';
 export class ReplayBoardComponent implements OnInit, OnChanges {
   @Input() gameId!: number;
   @Input() activeUserId!: number;
+  @Input() theme!: Theme;
   turnCounter = 0;
   board: any[][] = Array.from({ length: 8 }, () => Array(8).fill(null));
   selectedPiece$ = new BehaviorSubject<Coord | null>(null);
@@ -108,6 +112,7 @@ export class ReplayBoardComponent implements OnInit, OnChanges {
       <replay-board
         [snapshot]="snapshot"
         [gameId]="gameId!"
+        [theme]="theme"
         [activeUserId]="activeUserId">
       </replay-board>
     </div>
@@ -116,6 +121,7 @@ export class ReplayBoardComponent implements OnInit, OnChanges {
 })
 export class ReplayContainerComponent {
   @Input() gameId!: number | null;
+  @Input() theme!: Theme;
   @Input() activeUserId!: number;
   @Input() snapshot!: any[];
 }

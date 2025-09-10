@@ -10,6 +10,8 @@ import { BishopComponent } from "./bishop.component";
 import { RookComponent } from './rook.component';
 import { QueenComponent } from './queen.component';
 import { KingComponent } from './king.component ';
+import { Console, debug } from 'console';
+type Theme = { light: string; dark: string };
 
 @Component({
   standalone: true,
@@ -23,8 +25,9 @@ import { KingComponent } from './king.component ';
           *ngFor="let x of [0,1,2,3,4,5,6,7]"
           [black]="isBlack({ x, y })"
           [pieceColor]="board[y][x]?.pieceColor"
+          [theme]="theme"
           (click)="handleSquareClick({ x, y })"
-        >
+          >
           <app-knight
             *ngIf="board[y][x]?.pieceType === 1"
             [color]="board[y][x]?.pieceColor"
@@ -64,10 +67,12 @@ export class BoardComponent implements OnInit, OnChanges {
   @Input() gameId!: number;
   @Input() activeUserId!: number;
   @Output() gameEnded = new EventEmitter<string>();
+  @Input() theme!: Theme;
   board: any[][] = Array.from({ length: 8 }, () => Array(8).fill(null));
   selectedPiece$ = new BehaviorSubject<Coord | null>(null);
   endGameMessage: string = '';
   gameOver: boolean = false;
+  currentPlayerColor: any;
 
   constructor(private game: GameService) {}
 
@@ -104,7 +109,7 @@ export class BoardComponent implements OnInit, OnChanges {
   if (res.validMove) {
     if (res.message === "Checkmate!") {
       this.game.declareGameResult(this.gameId, this.activeUserId).subscribe();
-      this.gameEnded.emit(`Checkmate! Player ${res.pieceColor} wins!`);
+      this.gameEnded.emit(`Checkmate! Player ${this.activeUserId} wins!`);
     } else if (res.message === "Stalemate!") {
       this.game.declareGameResult(this.gameId, null).subscribe();
       this.gameEnded.emit("Stalemate!");
@@ -126,7 +131,24 @@ export class BoardComponent implements OnInit, OnChanges {
   }
 
   handlePieceClick(event: MouseEvent, pos: Coord): void {
+ const piece = this.board[pos.y][pos.x];
+  const selected = this.selectedPiece$.getValue();
+  const isOwn = piece.pieceColor === this.currentPlayerColor; 
+
+  if (isOwn) {
+    event.stopPropagation(); 
+    this.selectedPiece$.next(pos);
+    return;
+  }
+
+  // Opponent piece
+  if (selected) {
+    event.stopPropagation();    
+    this.handleSquareClick(pos);     
+  } else {
+  }
     event.stopPropagation();
+    console.log("Piece clicked")
     this.selectedPiece$.next(pos);
   }
 
@@ -141,6 +163,7 @@ export class BoardComponent implements OnInit, OnChanges {
   imports: [BoardComponent],
   template: `<div class="container"><app-board 
   [gameId]="gameId!" [activeUserId]="activeUserId!"
+  [theme]="theme"
   (gameEnded)="onGameEnded($event)" 
   ></app-board></div>`,
   styleUrls: ['./container.component.scss']
@@ -148,9 +171,10 @@ export class BoardComponent implements OnInit, OnChanges {
 export class ContainerComponent {
 @Input() gameId!: number | null;
 @Input() activeUserId!: number;
+@Input() theme!: Theme;
 @Output() gameEnded = new EventEmitter<string>();
 onGameEnded(message: string) {
-  console.log("Container caught:", message); // TEMP DEBUG
+  console.log("Container caught:", message);
   this.gameEnded.emit(message);
 }
 }

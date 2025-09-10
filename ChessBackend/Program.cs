@@ -5,8 +5,6 @@ using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -17,7 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<GameService>();
 builder.Services.AddSingleton<GameEngine>();
-builder.Services.AddSingleton<IConfiguration>(builder.Configuration); // IConfiguration registration
+builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 
 
 builder.Services.AddCors(options =>
@@ -33,14 +31,12 @@ var app = builder.Build();
 
 app.UseCors("AllowAngularApp");
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-//app.UseHttpsRedirection();
 
 app.UseRouting();
 

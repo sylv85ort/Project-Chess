@@ -22,16 +22,18 @@
 </label>
 
 <button (click)="startGame(gameInput.valueAsNumber)">Start Game</button>
+<button (click)="changeTheme()">Theme: {{ currentThemeName }}</button>
+
 
 <div *ngIf="gameId !== null">
-  <p>Game Replaying! Game ID: {{ gameId }}</p>
+  <p>Replay loading...</p>
 
-  <!-- show board only when game exists -->
 <div *ngIf="currentSnapshot.length > 0" >
   <p>Game Replaying! Game ID: {{ gameId }}</p>
   <replay-container
     [snapshot]="currentSnapshot"
     [gameId]="gameId"
+    [theme]="currentTheme"
     [activeUserId]="activeUserId">
   </replay-container>
 </div>

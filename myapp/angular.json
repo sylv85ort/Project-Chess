@@ -27,6 +27,7 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               {
+                
                 "glob": "**/*",
                 "input": "public"
               }

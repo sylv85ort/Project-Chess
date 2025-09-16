@@ -1,25 +1,17 @@
 import { Component, Input } from "@angular/core";
 import { CdkDragEnd, CdkDragMove, CdkDragStart, DragDropModule } from '@angular/cdk/drag-drop';
-import { BoardComponent } from "./chessboard.component";
-import { GameService } from "../game.service";
-import { Coord } from "./coord";
+import { BoardComponent } from "../chessboard.component";
+import { GameService } from "../../game.service";
+import { Coord } from "../coord";
 import { Observable } from "rxjs";
 import { CommonModule } from "@angular/common";
 
 @Component({
     selector: 'app-knight',
     imports: [DragDropModule, CommonModule],
-    template: `
-    <div>
-      <span [ngStyle]="{ color: color === 'White' ? 'white' : 'black' }">
-      ♘
-      </span>
-    </div>
-  `,
+    templateUrl: './knight.component.html',
     styles: [`
     span {
-        font-weight: 400;
-        font-size: 54px;
         line-height: 70px;
         }
     `]

@@ -6,20 +6,19 @@ using System.Text.Json;
 
 namespace ChessBackend
 {
-    public class GameService
+    public class GameRepository
     {
         private readonly IConfiguration _configuration;
 
-        public GameService(IConfiguration configuration)
+        public GameRepository(IConfiguration configuration)
         {
             _configuration = configuration;
         }
 
         private string GetConnectionString() => _configuration.GetConnectionString("DefaultConnection");
 
-        public int StartNewGame(int user1Id, int user2Id)
+        public async Task<int> StartNewGameAsync(int user1Id, int user2Id)
         {
-            int gameId = -1;
 
             using (SqlConnection connection = new SqlConnection(GetConnectionString()))
             using (SqlCommand cmd = new SqlCommand("StartNewGame", connection))
@@ -36,10 +35,8 @@ namespace ChessBackend
 
                 connection.Open();
                 cmd.ExecuteNonQuery();
-                gameId = (int)outputParam.Value;
+                return (int)outputParam.Value;
             }
-
-            return gameId;
         }
 
         public List<object> LoadGame(int gameId)

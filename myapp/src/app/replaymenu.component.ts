@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, SimpleChanges } from '@angular/core';
 import { CreateGameRequest, CreateReplayRequest, GameResponse, GameService } from './game.service'; // adjust path as needed
 import { AppComponent } from './app.component';
-import { ContainerComponent } from './chessboard/chessboard.component';
+import { ContainerComponent } from './chessboard/container.component';
 import { ActivatedRoute, Router} from '@angular/router'
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -19,7 +19,7 @@ type Theme = { light: string; dark: string };
 @Component({
     standalone: true,
   selector: 'replay-menu',
-    imports: [CommonModule, ReplayBoardComponent, ReplayContainerComponent],
+    imports: [CommonModule, ReplayContainerComponent],
   templateUrl: './replaymenu.component.html'
 })
 

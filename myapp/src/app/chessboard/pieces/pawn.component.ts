@@ -7,17 +7,9 @@ import { CommonModule } from "@angular/common";
 @Component({
     selector: 'app-pawn',
     imports: [CommonModule],
-    template: `
-    <div>
-      <span [ngStyle]="{ color: color === 'White' ? 'White' : 'Black' }">
-        ♙
-      </span>
-    </div>
-  `,
+    templateUrl: './pawn.component.html',
     styles: [`
     span {
-        font-weight: 400;
-        font-size: 54px;
         line-height: 70px;
         }
     `]

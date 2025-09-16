@@ -1,0 +1,14 @@
+<div class="square"
+    cdkDropList
+    [id]="'sq-' + pos.x + '-' + pos.y"
+    [attr.data-x]="pos.x"
+    [attr.data-y]="pos.y"
+    [cdkDropListData]="pos"
+    [cdkDropListConnectedTo]="connectedIds"
+    (cdkDropListEntered)="entered.emit($event)"
+    (cdkDropListExited)="exited.emit($event)"
+    (cdkDropListDropped)="dropped.emit($event)"
+    [ngStyle]="getStyle()">
+    <ng-content></ng-content>
+</div>
+    

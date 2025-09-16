@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.IO.Pipelines;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc.Formatters;
@@ -95,11 +96,21 @@ namespace ChessBackend
             return pieces;
         }
 
+        public PieceColor GetCurrentTurn()
+        {
+            return currentTurn;
+        }
+
         public MoveResult ValidateAndMovePiece(Coord from, Coord to, PieceType type, PieceColor color, String gameStatus, ChessPiece[,] board)
         {
             var piece = board[from.X, from.Y];
             
             bool moved = false;
+
+            if (type != piece.PieceType)
+            {
+                return new MoveResult { IsValid = false, Message = "Piece type mismatch" };
+            }
 
             switch (piece.PieceType)
             {
@@ -195,10 +206,7 @@ namespace ChessBackend
                 return new MoveResult { IsValid = false, Message = $"It's {currentTurn}'s turn" };
             }
 
-            if (type != piece.PieceType)
-            {
-                return new MoveResult { IsValid = false, Message = "Piece type mismatch" };
-            }
+
 
             if (gameStatus == "Finished")
             {
@@ -328,11 +336,12 @@ namespace ChessBackend
         private bool CanPromote(Coord from, Coord to, ChessPiece[,] board)
         {
             ChessPiece piece = board[from.X, from.Y];
+            ChessPiece potential = board[to.X, to.Y];
             if (piece == null || piece.PieceType != PieceType.Pawn)
             {
                 return false;
             }
-
+            //(from.Y - to.Y == 1)
             return (piece.Color == PieceColor.White && (from.X - to.X == 1) && to.X == 0) ||
                    (piece.Color == PieceColor.Black && (from.X - to.X == 1) && to.X == 7);
         }
@@ -469,7 +478,6 @@ namespace ChessBackend
 
                                             if (ok) yield return to;
                                         }
-                                        break;
                                     }
                                 }
                                 break;
@@ -501,6 +509,110 @@ namespace ChessBackend
 
         }
 
+        public List<Coord> FindLegalMoves(Coord from, ChessPiece[,] board)
+        {
+            List<Coord> legalMoves = new List<Coord>();
+            var piece = board[from.X, from.Y];
+
+            for (int x = 0; x < 8; x++)
+            {
+                for (int y = 0; y < 8; y++)
+                {
+                    bool moved = false;
+                    Coord to = new Coord(x, y);
+                    if (to == from)
+                    {
+                        moved = false;
+                    }
+                    if (board[to.X, to.Y] != null)
+                    {
+                        moved = false;
+                    }
+                    if (piece == null)
+                    {
+                        return legalMoves;
+                    }
+
+                    switch (piece.PieceType)
+                    {
+                        case PieceType.Pawn:
+                            if (IsEnPassant(from, to, board))
+                            {
+                                int targetX = from.X;
+                                int targetY = to.Y;
+                                ChessPiece capturedPawn = board[targetX, targetY];
+                                if (capturedPawn != null)
+                                {
+                                    capturedPawn.isCaptured = 1;
+                                    board[targetX, targetY] = null;
+                                    moved = true;
+                                }
+
+                                moved = true;
+                            }
+                            else if (CanPromote(from, to, board))
+                            {
+                                if (to.Y - from.Y >= 1)
+                                {
+                                    moved = false;
+                                }
+                                else
+                                {
+                                    moved = true;
+                                }
+                            }
+                            else if (piece.CanMovePawn(to, board)) moved = true; break;
+                        case PieceType.Knight:
+                            {
+                                if (piece.CanMoveKnight(to, board)) moved = true; break;
+                            }
+                        case PieceType.Bishop:
+                            {
+                                if (piece.CanMoveBishop(to, board)) moved = true; break;
+                            }
+                        case PieceType.Rook:
+                            {
+                                if (piece.CanMoveRook(to, board)) moved = true; break;
+                            }
+                        case PieceType.Queen:
+                            {
+                                if (piece.CanMoveQueen(to, board)) moved = true; break;
+                            }
+                        case PieceType.King:
+                            if (CanCastle(from, to, board))
+                            {
+                                board[to.X, to.Y] = piece;
+                                board[from.X, from.Y] = null;
+                                piece.SetPosition(to);
+                                piece.hasMoved = true;
+
+                                bool isKingside = to.Y > from.Y;
+                                int rookStartY = isKingside ? 7 : 0;
+                                int rookEndY = isKingside ? 5 : 3;
+                                ChessPiece rook = board[from.X, rookStartY];
+                                board[from.X, rookEndY] = rook;
+                                board[from.X, rookStartY] = null;
+                                rook.SetPosition(new Coord(from.X, rookEndY));
+                                rook.hasMoved = true;
+
+                                moved = true;
+                            }
+                            else if (piece.CanMoveKing(to, board))
+                            {
+                                moved = true;
+                            }
+                            break;
+                    }
+
+                    if (moved == true)
+                    {
+                        legalMoves.Add(to);
+                    }
+                }
+            }
+
+            return legalMoves;
+        }
 
 
         private Coord FindKing(PieceColor color, ChessPiece[,] board)

@@ -1,0 +1,70 @@
+<div cdkDropListGroup class="chessboard">
+    <div *ngFor="let y of [0,1,2,3,4,5,6,7]" class="row">
+        <app-square
+            *ngFor="let x of [0,1,2,3,4,5,6,7]"
+            [pos]="{x,y}"
+            [connectedIds]="squareIds" 
+            [black]="isBlack({ x, y })"
+            [pieceColor]="board[y][x]?.pieceColor"
+            [highlighted]="isHighlighted(x, y)"
+            [theme]="theme"
+            (click)="handleSquareClick({ x, y })"
+            >
+            <app-knight
+                *ngIf="board[y][x]?.pieceType === 1"
+                cdkDrag
+                [cdkDragData]="{ from:{x,y}, pieceType:1, pieceColor: board[y][x]?.pieceColor }"
+                (cdkDragStarted)="onDragStart({x,y})"
+                (cdkDragEnded)="onDragEnd($event, {x,y})"
+                [color]="board[y][x]?.pieceColor"
+                (click)="handlePieceClick($event, { x, y })"
+            ></app-knight>
+            <app-pawn
+                *ngIf="board[y][x]?.pieceType === 0"
+                cdkDrag
+                [cdkDragData]="{ from:{x,y}, pieceType:0, pieceColor: board[y][x]?.pieceColor }"
+                (cdkDragStarted)="onDragStart({x,y})"
+                (cdkDragEnded)="onDragEnd($event, {x,y})"
+                [color]="board[y][x]?.pieceColor"
+                (click)="handlePieceClick($event, { x, y })"
+            ></app-pawn>
+            <app-bishop
+                *ngIf="board[y][x]?.pieceType === 2"
+                cdkDrag
+                [cdkDragData]="{ from:{x,y}, pieceType:2, pieceColor: board[y][x]?.pieceColor }"
+                (cdkDragStarted)="onDragStart({x,y})"
+                (cdkDragEnded)="onDragEnd($event, {x,y})"
+                [color]="board[y][x]?.pieceColor"
+                (click)="handlePieceClick($event, { x, y })"
+            ></app-bishop>
+            <app-rook
+                *ngIf="board[y][x]?.pieceType === 3"
+                cdkDrag
+                [cdkDragData]="{ from:{x,y}, pieceType:3, pieceColor: board[y][x]?.pieceColor }"
+                (cdkDragEnded)="onDragEnd($event, {x,y})"
+                (cdkDragStarted)="onDragStart({x,y})"
+                [color]="board[y][x]?.pieceColor"
+                (click)="handlePieceClick($event, { x, y })"
+            ></app-rook>
+            <app-queen
+                *ngIf="board[y][x]?.pieceType === 4"
+                cdkDrag
+                [cdkDragData]="{ from:{x,y}, pieceType:4, pieceColor: board[y][x]?.pieceColor }"
+                (cdkDragStarted)="onDragStart({x,y})"
+                (cdkDragEnded)="onDragEnd($event, {x,y})"
+                [color]="board[y][x]?.pieceColor"
+                (click)="handlePieceClick($event, { x, y })"
+            ></app-queen>
+            <app-king
+                *ngIf="board[y][x]?.pieceType === 5"
+                cdkDrag
+                [cdkDragData]="{ from:{x,y}, pieceType:5, pieceColor: board[y][x]?.pieceColor }"
+                (cdkDragStarted)="onDragStart({x,y})"
+                (cdkDragEnded)="onDragEnd($event, {x,y})"
+                [color]="board[y][x]?.pieceColor"
+                (click)="handlePieceClick($event, { x, y })"
+            ></app-king>
+        </app-square>
+    </div>
+</div>
+  

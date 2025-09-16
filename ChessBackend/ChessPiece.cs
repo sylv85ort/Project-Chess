@@ -64,45 +64,38 @@ namespace ChessBackend
 
         public bool CanMovePawn(Coord to, ChessPiece[,] board)
         {
-            int dx = to.X - CurrentPosition.X;
-            int dy = to.Y - CurrentPosition.Y;
-            ChessPiece target = board[to.X, to.Y];
+            var from = CurrentPosition;
+            int dx = to.X - from.X;   
+            int dy = to.Y - from.Y;
 
+            if (to.X < 0 || to.X >= 8 || to.Y < 0 || to.Y >= 8) return false;
+            if (dx == 0 && dy == 0) return false;
 
-            if (Color == PieceColor.White && dx >= 0)
+            var target = board[to.X, to.Y];
+            if (target != null && target.Color == this.Color) return false;
+
+            int dir = (Color == PieceColor.White) ? -1 : +1;  
+            int start = (Color == PieceColor.White) ? 6 : 1;
+
+            if (dy == 0)
+            {
+                if (target != null) return false;
+
+                if (dx == dir) return true;
+
+                if (from.X == start && dx == 2 * dir)
+                {
+                    int midX = from.X + dir;
+                    if (board[midX, from.Y] == null) return true;
+                }
                 return false;
-            if (Color == PieceColor.Black && dx <= 0)
-                return false;
-            if (dy != 0 && target == null) return false;
-            if (dy == 0 && target != null && target.Color != this.Color)
-            {
-                return false;
-            }
-            if (Color == PieceColor.White && CurrentPosition.X == 6)
-            {
-                return (Math.Abs(dx) == 2) || (Math.Abs(dx) == 1);
-            }
-            else if (Color == PieceColor.White)
-            {
-                return (Math.Abs(dx) == 1);
-            }
-            if (Color == PieceColor.Black && CurrentPosition.X == 1)
-            {
-                return (Math.Abs(dx) == 2) || (Math.Abs(dx) == 1);
-            }
-            else if (Color == PieceColor.Black)
-            {
-                return (Math.Abs(dx) == 1);
             }
 
-            if (target != null && target.Color == this.Color)
-                return false;
-
-            else if (dy == 1 && target != null && target.Color != this.Color)
+            if (Math.Abs(dy) == 1 && dx == dir)
             {
-                return (Math.Abs(dx) == 1) & (Math.Abs(dy) == 1);
+                return target != null && target.Color != this.Color;
             }
-            return true;
+            return false;
         }
 
 
@@ -139,6 +132,7 @@ namespace ChessBackend
 
             while (x != to.X && y != to.Y)
             {
+                if (x < 0 || x > 7 || y < 0 || y > 7) return false;
                 if (board[x, y] != null)
                 {
                     return false;
@@ -183,7 +177,6 @@ namespace ChessBackend
                 if (board[x, y] != null)
                 {
                     return false;
-                    break;
                 }
 
 

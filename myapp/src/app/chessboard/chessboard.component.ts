@@ -1,78 +1,51 @@
-import { Component, OnInit, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, OnChanges, SimpleChanges, Output, EventEmitter, QueryList, ViewChildren } from '@angular/core';
 import { SquareComponent } from './square.component';
-import { KnightComponent } from './knight.component';
+import { KnightComponent } from './pieces/knight.component';
 import { CommonModule } from '@angular/common';
 import { Coord } from './coord';
 import { GameService } from '../game.service';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { PawnComponent } from './pawn.component';
-import { BishopComponent } from "./bishop.component";
-import { RookComponent } from './rook.component';
-import { QueenComponent } from './queen.component';
-import { KingComponent } from './king.component ';
+import { PawnComponent } from './pieces/pawn.component';
+import { BishopComponent } from "./pieces/bishop.component";
+import { RookComponent } from './pieces/rook.component';
+import { QueenComponent } from './pieces/queen.component';
+import { KingComponent } from './pieces/king.component ';
 import { Console, debug } from 'console';
+import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem, CdkDropList, CdkDragEnter, CdkDragExit, CdkDrag, CdkDragHandle, CdkDragEnd } from '@angular/cdk/drag-drop';
+import { exit } from 'process';
+import e from 'express';
 type Theme = { light: string; dark: string };
 
 @Component({
   standalone: true,
   selector: 'app-board',
-  imports: [SquareComponent, KnightComponent, CommonModule, PawnComponent, BishopComponent, RookComponent, QueenComponent, KingComponent],
-  styleUrls: ['./chessboard.component.scss'],
-  template: `
-    <div class="chessboard">
-      <div *ngFor="let y of [0,1,2,3,4,5,6,7]" class="row">
-        <app-square
-          *ngFor="let x of [0,1,2,3,4,5,6,7]"
-          [black]="isBlack({ x, y })"
-          [pieceColor]="board[y][x]?.pieceColor"
-          [theme]="theme"
-          (click)="handleSquareClick({ x, y })"
-          >
-          <app-knight
-            *ngIf="board[y][x]?.pieceType === 1"
-            [color]="board[y][x]?.pieceColor"
-            (click)="handlePieceClick($event, { x, y })"
-          ></app-knight>
-          <app-pawn
-            *ngIf="board[y][x]?.pieceType === 0"
-            [color]="board[y][x]?.pieceColor"
-            (click)="handlePieceClick($event, { x, y })"
-          ></app-pawn>
-          <app-bishop
-            *ngIf="board[y][x]?.pieceType === 2"
-            [color]="board[y][x]?.pieceColor"
-            (click)="handlePieceClick($event, { x, y })"
-          ></app-bishop>
-          <app-rook
-            *ngIf="board[y][x]?.pieceType === 3"
-            [color]="board[y][x]?.pieceColor"
-            (click)="handlePieceClick($event, { x, y })"
-          ></app-rook>
-          <app-queen
-            *ngIf="board[y][x]?.pieceType === 4"
-            [color]="board[y][x]?.pieceColor"
-            (click)="handlePieceClick($event, { x, y })"
-          ></app-queen>
-          <app-king
-            *ngIf="board[y][x]?.pieceType === 5"
-            [color]="board[y][x]?.pieceColor"
-            (click)="handlePieceClick($event, { x, y })"
-          ></app-king>
-        </app-square>
-      </div>
-    </div>
-  `
+  imports: [SquareComponent, KnightComponent, CommonModule, PawnComponent, BishopComponent, RookComponent, QueenComponent, KingComponent, DragDropModule],
+  styleUrl: './chessboard.component.css',
+  templateUrl: './chessboard.component.html'
 })
 export class BoardComponent implements OnInit, OnChanges {
+  @ViewChildren(CdkDropList) private lists!: QueryList<CdkDropList>;
+  allLists: CdkDropList[] = [];
   @Input() gameId!: number;
   @Input() activeUserId!: number;
-  @Output() gameEnded = new EventEmitter<string>();
   @Input() theme!: Theme;
+
+  @Output() gameEnded = new EventEmitter<string>();
+  @Output() activeUserIdChange = new EventEmitter<number>();
+  @Output() dropped = new EventEmitter<CdkDragDrop<any>>();
+  @Output() entered = new EventEmitter<CdkDragEnter<Coord>>();
+  @Output() exited  = new EventEmitter<CdkDragExit<Coord>>();
+
   board: any[][] = Array.from({ length: 8 }, () => Array(8).fill(null));
   selectedPiece$ = new BehaviorSubject<Coord | null>(null);
+  highlightSet = new Set<string>();
   endGameMessage: string = '';
   gameOver: boolean = false;
   currentPlayerColor: any;
+
+  squareIds: string[] = Array.from({ length: 8 }, (_, x) =>
+    Array.from({ length: 8 }, (_, y) => `sq-${x}-${y}`)
+  ).flat();
 
   constructor(private game: GameService) {}
 
@@ -89,6 +62,11 @@ export class BoardComponent implements OnInit, OnChanges {
     }
   }
 
+  ngAfterViewInit() {
+    this.allLists = this.lists.toArray();
+    console.log('drop lists:', this.lists.length);
+  }
+
   loadBoard(): void {
     this.game.getBoardByGameId(this.gameId).subscribe(boardData => {
       const newBoard: any[][] = Array.from({ length: 8 }, () => Array(8).fill(null));
@@ -100,48 +78,70 @@ export class BoardComponent implements OnInit, OnChanges {
     });
   }
 
+  onDragStart(pos: Coord) {
+    const piece = this.board[pos.x][pos.y]
+    this.fetchAllLegalMoves(pos);
+    console.log('drag start', pos);
+  }
+
+  onDragEnd(e: CdkDragEnd, from: Coord) {
+    this.clearHighlights();
+
+    const el = e.source.element.nativeElement as HTMLElement;
+    const base = el.getBoundingClientRect();
+    const offset = e.source.getFreeDragPosition();
+    console.log(offset);
+
+    const midX = base.left + offset.x + base.width  / 2;
+    const midY = base.top  + offset.y + base.height / 2;
+
+    const stack = document.elementsFromPoint(midX, midY) as HTMLElement[];
+    const squareEl =
+      stack.find(n => n?.hasAttribute?.('data-x') && n?.hasAttribute?.('data-y')) ||
+      (document.elementFromPoint(midX, midY)?.closest('.square') as HTMLElement | null);
+
+    if (!squareEl) { e.source.reset(); return; }
+
+    const dx = squareEl.getAttribute('data-x');
+    const dy = squareEl.getAttribute('data-y');
+    if (dx == null || dy == null) { e.source.reset(); return; }
+
+    const to: Coord = { x: parseInt(dx, 10), y: parseInt(dy, 10) };
+
+    if (
+      Number.isNaN(to.x) || Number.isNaN(to.y) ||
+      to.x < 0 || to.x > 7 || to.y < 0 || to.y > 7
+    ) { e.source.reset(); return; }
+
+    // if you still want to skip same-square moves, keep this; otherwise remove it
+    if (to.x === from.x && to.y === from.y) { e.source.reset(); return; }
+
+    this.attemptMove(from, to);
+    e.source.reset(); // DOM snaps back; your board render places it at `to`
+  }
+
   handleSquareClick(pos: Coord): void {
     const selected = this.selectedPiece$.getValue();
     if (selected) {
       const piece = this.board[selected.y][selected.x];
-      if (piece) {
-        this.game.movePiece(piece.pieceType, selected, pos, this.activeUserId, this.gameId, piece.pieceColor, (res) => {
-  if (res.validMove) {
-    if (res.message === "Checkmate!") {
-      this.game.declareGameResult(this.gameId, this.activeUserId).subscribe();
-      this.gameEnded.emit(`Checkmate! Player ${this.activeUserId} wins!`);
-    } else if (res.message === "Stalemate!") {
-      this.game.declareGameResult(this.gameId, null).subscribe();
-      this.gameEnded.emit("Stalemate!");
-    }
-
-    this.loadBoard();
-  } else {
-    console.log("Move rejected:", res.message);
-    alert("Invalid move: " + res.message);
-  }
-  this.selectedPiece$.next(null);
-        });
-      }
-      
-      this.selectedPiece$.next(null);
-
-      
+    if (piece) {
+      this.attemptMove(selected, pos);
+      }  
+    this.selectedPiece$.next(null);
     }
   }
 
   handlePieceClick(event: MouseEvent, pos: Coord): void {
- const piece = this.board[pos.y][pos.x];
+  const piece = this.board[pos.y][pos.x];
   const selected = this.selectedPiece$.getValue();
   const isOwn = piece.pieceColor === this.currentPlayerColor; 
-
+      this.fetchAllLegalMoves(pos);
   if (isOwn) {
     event.stopPropagation(); 
     this.selectedPiece$.next(pos);
     return;
   }
 
-  // Opponent piece
   if (selected) {
     event.stopPropagation();    
     this.handleSquareClick(pos);     
@@ -152,29 +152,45 @@ export class BoardComponent implements OnInit, OnChanges {
     this.selectedPiece$.next(pos);
   }
 
+  attemptMove(from: Coord, to: Coord){
+    const piece = this.board[from.y][from.x];
+    this.game.movePiece(piece.pieceType, from, to, this.activeUserId, this.gameId, piece.pieceColor, (res) => {
+    if (res.validMove) {
+      if (res.message === "Checkmate!") {
+        this.game.declareGameResult(this.gameId, this.activeUserId).subscribe();
+        this.gameEnded.emit(`Checkmate! Player ${this.activeUserId} wins!`);
+      } else if (res.message === "Stalemate!") {
+        this.game.declareGameResult(this.gameId, null).subscribe();
+        this.gameEnded.emit("Stalemate!");
+      }
+      this.game.switchActiveUserId(this.gameId, this.activeUserId).subscribe(r => {
+        this.activeUserIdChange.emit(r.nextUserId);
+      });
+      this.loadBoard();
+      } else {
+      console.log("Move rejected:", res.message);
+      alert("Invalid move: " + res.message);
+      }
+    this.selectedPiece$.next(null);
+    this.clearHighlights();
+    });
+  } 
+
+  fetchAllLegalMoves(pos: Coord) {
+    this.game.fetchLegalMoves(this.gameId, pos).subscribe(moves => {
+      this.highlightSet = new Set(moves.map(m => `${m.x}, ${m.y}`));
+    });
+  }
+
+  clearHighlights() { 
+    this.highlightSet = new Set(); 
+  }
+
+  isHighlighted(x: number, y: number) {
+  return this.highlightSet.has(`${x}, ${y}`);
+}
+
   isBlack({ x, y }: Coord): boolean {
     return (x + y) % 2 === 1;
   }
-}
-
-@Component({
-  standalone: true,
-  selector: 'app-container',
-  imports: [BoardComponent],
-  template: `<div class="container"><app-board 
-  [gameId]="gameId!" [activeUserId]="activeUserId!"
-  [theme]="theme"
-  (gameEnded)="onGameEnded($event)" 
-  ></app-board></div>`,
-  styleUrls: ['./container.component.scss']
-})
-export class ContainerComponent {
-@Input() gameId!: number | null;
-@Input() activeUserId!: number;
-@Input() theme!: Theme;
-@Output() gameEnded = new EventEmitter<string>();
-onGameEnded(message: string) {
-  console.log("Container caught:", message);
-  this.gameEnded.emit(message);
-}
 }

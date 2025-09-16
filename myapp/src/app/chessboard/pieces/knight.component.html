@@ -1,0 +1,10 @@
+<div>
+    <span [ngStyle]="{ color: color === 'White' ? 'white' : 'black' }">
+    <div *ngIf="color == 'White'; else elseBlock">
+        <img class="images" src="./assets/white_knight.png" alt="image"/>
+    </div>
+    <ng-template #elseBlock>
+        <img class="images" src="./assets/black_knight.png" alt="image"/>
+    </ng-template>
+    </span>
+</div>

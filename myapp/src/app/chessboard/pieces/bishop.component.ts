@@ -4,24 +4,17 @@ import { Component, Input } from "@angular/core";
 
 
 @Component({
+  standalone: true,
     imports: [CommonModule],
-    selector: 'app-rook',
-    template: `
-    <div>
-      <span [ngStyle]="{ color: color === 'White' ? 'white' : 'black' }">
-      ♖
-      </span>
-    </div>
-  `,
+    selector: 'app-bishop',
+    templateUrl: './bishop.component.html',
     styles: [`
     span {
-        font-weight: 400;
-        font-size: 54px;
         line-height: 70px;
         }
     `]
 })
-export class RookComponent {
+export class BishopComponent {
     @Input() color!: string; 
 
 }

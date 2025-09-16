@@ -1,15 +1,15 @@
 import { Component, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { SquareComponent } from './square.component';
-import { KnightComponent } from './knight.component';
+import { KnightComponent } from './pieces/knight.component';
 import { CommonModule } from '@angular/common';
 import { Coord } from './coord';
 import { GameService } from '../game.service';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { PawnComponent } from './pawn.component';
-import { BishopComponent } from "./bishop.component";
-import { RookComponent } from './rook.component';
-import { QueenComponent } from './queen.component';
-import { KingComponent } from './king.component ';
+import { PawnComponent } from './pieces/pawn.component';
+import { BishopComponent } from "./pieces/bishop.component";
+import { RookComponent } from './pieces/rook.component';
+import { QueenComponent } from './pieces/queen.component';
+import { KingComponent } from './pieces/king.component ';
 import { ReplayMenuComponent } from '../replaymenu.component';
 type Theme = { light: string; dark: string };
 
@@ -18,7 +18,7 @@ type Theme = { light: string; dark: string };
       standalone: true,
   selector: 'replay-board',
   imports: [SquareComponent, KnightComponent, CommonModule, PawnComponent, BishopComponent, RookComponent, QueenComponent, KingComponent],
-  styleUrls: ['./chessboard.component.scss'],
+  styleUrls: ['./chessboard.component.css'],
   template: `
     <div class="chessboard">
       <div *ngFor="let y of [0,1,2,3,4,5,6,7]" class="row">
@@ -117,7 +117,7 @@ export class ReplayBoardComponent implements OnInit, OnChanges {
       </replay-board>
     </div>
   `,
-  styleUrls: ['./container.component.scss']
+  styleUrls: ['./container.component.css']
 })
 export class ReplayContainerComponent {
   @Input() gameId!: number | null;

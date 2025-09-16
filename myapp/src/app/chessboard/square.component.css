@@ -1,0 +1,11 @@
+:host, 
+div {
+        display: block;
+        height: 100%;
+        width: 100%;
+        text-align: center;
+        .highlight {
+        background-color: rgba(255, 215, 0, 0.45)}
+        .cdk-drag-preview { pointer-events: none; }
+    }
+    

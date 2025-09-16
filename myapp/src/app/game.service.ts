@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, map, Observable } from 'rxjs';
 import { Coord } from './chessboard/coord';
 
 @Injectable({
@@ -31,9 +31,25 @@ export class GameService {
     return this.http.get<any[]>(`${this.apiUrl}/Chess/GetBoard?gameId=${gameId}`);
   }
 
+  getCurrentTurn(gameId: number): Observable<string> {
+    return this.http.get<{ color: string }>(`/api/chess/current-turn?gameId=${gameId}`)
+      .pipe(map(res => res.color));
+  }
   
   getReplayByGameId(gameId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/Chess/GetSnapshots?gameId=${gameId}`);
+  }
+
+  fetchLegalMoves(gameId: number, from: Coord): Observable<Coord[]> {
+    const body = { gameId, from};
+    return this.http.post<Coord[]>(`${this.apiUrl}/Chess/fetchLegalMoves`, body);
+  }
+
+  switchActiveUserId(gameId: number, currentUserId: number) {
+    return this.http.post<{ nextUserId: number }>(
+      `${this.apiUrl}/Chess/SwitchActiveUser`,
+      { gameId, currentUserId }
+    );
   }
 
   getGameId(): number | null {
@@ -43,9 +59,9 @@ export class GameService {
     return stored ? parseInt(stored, 10) : null;
   }
   
-    getColors(gameId: number): Observable<GameResponse> {
-    return this.http.get<GameResponse>(`${this.apiUrl}/Chess/game-details?gameId=${gameId}`);
-  }
+  getColors(gameId: number): Observable<GameResponse> {
+  return this.http.get<GameResponse>(`${this.apiUrl}/Chess/game-details?gameId=${gameId}`);
+}
 
   declareGameResult(gameId: number, winnerUserId: number | null): Observable<any> {
   return this.http.post(`${this.apiUrl}/Chess/DeclareGameResult`, { gameId, winnerUserId });

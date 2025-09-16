@@ -1,11 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CreateGameRequest, GameResponse, GameService } from './game.service'; // adjust path as needed
 import { AppComponent } from './app.component';
-import { ContainerComponent } from './chessboard/chessboard.component';
+import { ContainerComponent } from './chessboard/container.component';
 import { ActivatedRoute, Router} from '@angular/router'
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SquareComponent } from './chessboard/square.component';
+import { BoardComponent } from './chessboard/chessboard.component';
+import { text } from 'stream/consumers';
 
 const THEMES = {
         classic: { dark: '#769656', light: '#eeeed2' },
@@ -20,17 +22,19 @@ type Theme = { light: string; dark: string };
 @Component({
   standalone: true,
   selector: 'app-game',
-    imports: [FormsModule, ContainerComponent, CommonModule, SquareComponent],
+    imports: [FormsModule, ContainerComponent, CommonModule, BoardComponent],
   templateUrl: './game.component.html'
 })
 
 export class GameComponent implements OnInit{
   currentThemeName: ThemeName = 'classic';
   currentTheme: Theme = THEMES[this.currentThemeName];  
-  activeUserId: number = 2;
+  activeUserId: number = 1;
+  playerColor!: 'White' | 'Black';
   gameId: number | null = null;
   gameResponse: any;
   public endGameMessage: string = '';
+  isMyTurn: boolean = false;
 
 
   constructor(private chessService: GameService,
@@ -63,24 +67,36 @@ export class GameComponent implements OnInit{
             console.error('Failed loading game details:', err);
           }
         });
+        if (this.activeUserId === this.gameResponse.whitePlayerId) {
+          this.playerColor = 'White';
+        } else if (this.activeUserId === this.gameResponse.blackPlayerId) {
+          this.playerColor = 'Black';
+        }
       }
     });
   }
 
-    setActiveUser(id: number) {
-      this.activeUserId = id;
-      console.log('[GameComponent] Active user switched to:', this.activeUserId);
-    }
+  setActiveUser(id: number) {
+    this.activeUserId = id;
+    console.log('[GameComponent] Active user switched to:', this.activeUserId);
+  }
   
   changeTheme(){
-if (this.currentThemeName === 'classic') {
-  this.currentThemeName = 'red';
-} else if (this.currentThemeName === 'red') {
-  this.currentThemeName = 'aqua';
-} else {
-  this.currentThemeName = 'classic';
-}    this.currentTheme = THEMES[this.currentThemeName];
+    if (this.currentThemeName === 'classic') {
+      this.currentThemeName = 'red';
+    } else if (this.currentThemeName === 'red') {
+      this.currentThemeName = 'aqua';
+    } else {
+      this.currentThemeName = 'classic';
+    }    this.currentTheme = THEMES[this.currentThemeName];
   }
+
+  isCurrentTurn(gameId: number): void {
+    this.chessService.getCurrentTurn(gameId).subscribe(turn => {
+      this.isMyTurn = (turn === this.playerColor);
+    });
+  }
+
 
   startGame(player1Id: number, player2Id: number): void {
     const request: CreateGameRequest = {

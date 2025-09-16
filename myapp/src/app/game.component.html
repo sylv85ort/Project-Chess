@@ -10,36 +10,42 @@
   </select>
 </div>
 
-<p>DEBUG: ActiveUserId = {{ activeUserId }}</p>
+<div *ngIf="gameId == null">
+  <label>Player 1 ID:
+    <input #p1Input type="number">
+  </label>
+
+  <label>Player 2 ID:
+    <input #p2Input type="number">
+  </label>
+      
+  <button (click)="startGame(p1Input.valueAsNumber, p2Input.valueAsNumber)">Start Game</button>
+</div>
 <p *ngIf="gameResponse">White Player = {{ gameResponse.whitePlayerId }}</p>
 <p *ngIf="gameResponse">Black Player = {{ gameResponse.blackPlayerId }}</p>
+<div *ngIf="activeUserId === gameResponse.whitePlayerId; else blackPlayer">
+  Active Player : White ({{activeUserId}})
+</div>
+<ng-template #blackPlayer>
+    Current Turn: Black ({{activeUserId}})
+</ng-template>
 
-
-
-<label>Player 1 ID:
-  <input #p1Input type="number">
-</label>
-
-<label>Player 2 ID:
-  <input #p2Input type="number">
-</label>
-    
-<button (click)="startGame(p1Input.valueAsNumber, p2Input.valueAsNumber)">Start Game</button>
-<button (click)="changeTheme()">Theme: {{ currentThemeName }}</button>
-
-
+<div *ngIf="isMyTurn == true">
+  <p *ngif="currentTurn === playerColor">Your turn {{ currentTurn  }}</p>
+    <p *ngif="currentTurn !== playerColor">Your turn {{ currentTurn  }}</p>
+</div>
 
 <div *ngIf="gameId !== null">
   <p>Game Created! Game ID: {{ gameId }}</p>
+  <button (click)="changeTheme()">Theme: {{ currentThemeName }}</button>
   <div *ngIf="endGameMessage !== null" class="endgame-banner"
-      ><p>endGameMessage = {{ endGameMessage }}</p></div>
-
+      ><p>{{ endGameMessage }}</p>
+    </div>
 
   <!-- show board only when game exists -->
   <div class="container">
     <div class="chessboard">
-      <app-container [gameId]="gameId" [activeUserId]="activeUserId" [theme]="currentTheme" (gameEnded)="onGameEnded($event)"></app-container>
-      
+      <app-container [gameId]="gameId" [activeUserId]="activeUserId" [theme]="currentTheme" (activeUserIdChange)="activeUserId = $event" (gameEnded)="onGameEnded($event)"></app-container>
     </div>
   </div>
 </div>

@@ -5,23 +5,15 @@ import { Component, Input } from "@angular/core";
 
 @Component({
     imports: [CommonModule],
-    selector: 'app-king',
-    template: `
-    <div>
-      <span [ngStyle]="{ color: color === 'White' ? 'white' : 'black' }">
-      ♔
-      </span>
-    </div>
-  `,
+    selector: 'app-queen',
+    templateUrl: './queen.component.html',
     styles: [`
     span {
-        font-weight: 400;
-        font-size: 54px;
         line-height: 70px;
         }
     `]
 })
-export class KingComponent {
+export class QueenComponent {
     @Input() color!: string; 
 
 }

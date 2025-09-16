@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using ChessBackend;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration.UserSecrets;
 using static ChessBackend.ChessPiece;
 
 [ApiController]
@@ -97,12 +98,35 @@ public class ChessController : ControllerBase
         return Ok(snapshots);
     }
 
+    [HttpGet("current-turn")]
+    public IActionResult GetCurrentTurn(int gameId)
+    {
+        var color = _gameEngine.GetCurrentTurn();
+        return Ok(new { color });
+    }
+
+    [HttpGet("users")]
+    public IActionResult GetUsers()
+    {
+        var users = new[]
+        {
+            new { userId = 1, username = "Adam" },
+            new { userId = 2, username = "Eve" },
+            new { userId = 3, username = "Matthew" },
+            new { userId = 4, username = "Paul" },
+            new { userId = 5, username = "John" }
+        };
+
+        return Ok(users);
+    }
+
     [HttpPost("MovePiece")]
     public IActionResult MovePiece([FromBody] MoveRequest move)
     {
         var dbPieces = _gameService.LoadGame(move.GameId);
         var board = _gameEngine.BuildBoard(dbPieces);
         var gameStatus = _gameService.GetGameStatus(move.GameId);
+        var currentTurn = move.UserId;
 
         var piece = board[move.From.X, move.From.Y];
         if (piece == null) {
@@ -142,20 +166,34 @@ public class ChessController : ControllerBase
         return Ok(new { validMove = false, message = result.Message });
     }
 
-    [HttpGet("users")]
-    public IActionResult GetUsers()
+    [HttpPost("fetchLegalMoves")]
+    public IActionResult fetchLegalMoves([FromBody] LegalMoveRequest move)
     {
-        var users = new[]
-        {
-            new { userId = 1, username = "Adam" },
-            new { userId = 2, username = "Eve" },
-            new { userId = 3, username = "Matthew" },
-            new { userId = 4, username = "Paul" },
-            new { userId = 5, username = "John" }
-        };
+        var dbPieces = _gameService.LoadGame(move.GameId);
+        var board = _gameEngine.BuildBoard(dbPieces);
+        var legalMoves = _gameEngine.FindLegalMoves(move.From, board);
+        var piece = board[move.From.X, move.From.Y];
 
-        return Ok(users);
+        if (piece == null)
+        {
+            return BadRequest(new { message = "No piece at selected position" });
+        }
+        return Ok(legalMoves);
     }
+
+    [HttpPost("SwitchActiveUser")]
+    public IActionResult SwitchActiveUser(SwitchUserRequest request)
+    {
+        var (whiteId, blackId) = _gameService.GetPlayerColors(request.gameId);
+
+        if (request.CurrentUserId != whiteId && request.CurrentUserId != blackId)
+            return BadRequest(new { message = "CurrentUserId is not a player in this game." });
+
+        var next = (request.CurrentUserId == whiteId) ? blackId : whiteId;
+        return Ok(new { nextUserId = next });
+    }
+
+
 }
 
 public class CreateGameRequest
@@ -167,6 +205,11 @@ public class CreateGameRequest
 public class CreateReplayRequest
 {
     public int GameId { get; set; }
+}
+
+public class LegalMoveRequest {
+    public int GameId { get; set; }
+    public Coord From { get; set; }
 }
 
 public class MoveRequest
@@ -185,4 +228,10 @@ public class GameResponse
     public int GameId { get; set; }
     public int WhitePlayerId { get; set; }
     public int BlackPlayerId { get; set; }
+}
+
+public class SwitchUserRequest
+{
+    public int gameId { get; set; }
+    public int CurrentUserId { get; set; }
 }

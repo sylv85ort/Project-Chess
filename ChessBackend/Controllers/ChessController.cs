@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
 using ChessBackend;
+using ChessBackend.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using static ChessBackend.ChessPiece;
+
 
 [ApiController]
 [Route("api/[controller]")]
@@ -101,23 +103,7 @@ public class ChessController : ControllerBase
     [HttpGet("current-turn")]
     public IActionResult GetCurrentTurn(int gameId)
     {
-        var color = _gameEngine.GetCurrentTurn();
-        return Ok(new { color });
-    }
-
-    [HttpGet("users")]
-    public IActionResult GetUsers()
-    {
-        var users = new[]
-        {
-            new { userId = 1, username = "Adam" },
-            new { userId = 2, username = "Eve" },
-            new { userId = 3, username = "Matthew" },
-            new { userId = 4, username = "Paul" },
-            new { userId = 5, username = "John" }
-        };
-
-        return Ok(users);
+        return Ok(_gameEngine.GetCurrentTurn().ToString());
     }
 
     [HttpPost("MovePiece")]
@@ -126,7 +112,7 @@ public class ChessController : ControllerBase
         var dbPieces = _gameService.LoadGame(move.GameId);
         var board = _gameEngine.BuildBoard(dbPieces);
         var gameStatus = _gameService.GetGameStatus(move.GameId);
-        var currentTurn = move.UserId;
+        var attemptedTurn = move.UserId;
 
         var piece = board[move.From.X, move.From.Y];
         if (piece == null) {
@@ -135,13 +121,13 @@ public class ChessController : ControllerBase
 
         string actualColor = piece.Color.ToString();
         int playerId = _gameService.GetPlayerIdByColor(move.GameId, actualColor);
-        int userId = _gameService.GetUserIdByGamePlayer(playerId);
+        int currentTurn = _gameService.GetUserIdByGamePlayer(playerId);
 
-        Debug.WriteLine($"Move requested by User {move.UserId}, piece color: {actualColor}, DB says user: {userId}");
+        Debug.WriteLine($"Move requested by User {attemptedTurn}, piece color: {actualColor}, DB says user: {currentTurn}");
 
 
-        if (userId != move.UserId) {
-            return Ok(new { validMove = false, message = "Unauthorized move attempt" });
+        if (currentTurn != attemptedTurn) {
+            return Ok(new { validMove = false, message = $"It is not currently User {attemptedTurn}'s turn. The turn belongs to {currentTurn}" });
         }
 
         var result = _gameEngine.ValidateAndMovePiece(
@@ -151,13 +137,14 @@ public class ChessController : ControllerBase
         {
             Debug.WriteLine("So its either a checkmate or a stalemate");
             var status = result.Message == "Checkmate!" ? "Finished" : "Stalemate";
-            int? winner = result.Message == "Checkmate!" ? userId : (int?)null;
+            int? winner = result.Message == "Checkmate!" ? currentTurn : (int?)null;
             _gameService.DeclareGameResult(move.GameId, winner, status);
         }
 
         if (result.IsValid)
         {
             var updated = _gameEngine.ConvertBoardToState(board);
+            var nextTurn = _gameEngine.GetCurrentTurn().ToString();
             _gameService.SaveBoardToDatabase(move.GameId, updated);
             _gameService.SaveSnapshot(move.GameId, move.turnNumber, updated);
             return Ok(new { validMove = true, newPosition = result.NewPosition, message = result.Message });
@@ -173,11 +160,12 @@ public class ChessController : ControllerBase
         var board = _gameEngine.BuildBoard(dbPieces);
         var legalMoves = _gameEngine.FindLegalMoves(move.From, board);
         var piece = board[move.From.X, move.From.Y];
+        Debug.WriteLine($"Fetch from ({move.From.X},{move.From.Y}) -> {(board[move.From.X, move.From.Y] == null ? "NULL" : board[move.From.X, move.From.Y].PieceType.ToString())}");
 
-        if (piece == null)
-        {
-            return BadRequest(new { message = "No piece at selected position" });
-        }
+        //if (piece == null)
+        //{
+        //    return BadRequest(new { message = "No piece at selected position" });
+        //}
         return Ok(legalMoves);
     }
 
@@ -186,52 +174,12 @@ public class ChessController : ControllerBase
     {
         var (whiteId, blackId) = _gameService.GetPlayerColors(request.gameId);
 
-        if (request.CurrentUserId != whiteId && request.CurrentUserId != blackId)
+        if (request.CurrentUserId != whiteId && request.CurrentUserId != blackId) {
             return BadRequest(new { message = "CurrentUserId is not a player in this game." });
-
+        }
         var next = (request.CurrentUserId == whiteId) ? blackId : whiteId;
         return Ok(new { nextUserId = next });
     }
 
 
-}
-
-public class CreateGameRequest
-{
-    public int Player1Id { get; set; }
-    public int Player2Id { get; set; }
-}
-
-public class CreateReplayRequest
-{
-    public int GameId { get; set; }
-}
-
-public class LegalMoveRequest {
-    public int GameId { get; set; }
-    public Coord From { get; set; }
-}
-
-public class MoveRequest
-{
-    public Coord From { get; set; }
-    public Coord To { get; set; }
-    public PieceType PieceType { get; set; }
-    public PieceColor PieceColor { get; set; }
-    public int UserId { get; set; }
-    public int GameId { get; set; }
-    public int turnNumber { get; set; }
-}
-
-public class GameResponse
-{
-    public int GameId { get; set; }
-    public int WhitePlayerId { get; set; }
-    public int BlackPlayerId { get; set; }
-}
-
-public class SwitchUserRequest
-{
-    public int gameId { get; set; }
-    public int CurrentUserId { get; set; }
 }

@@ -1,39 +1,43 @@
-
-<!-- <div class="user-switcher">
-  <label for="userSelect">Active User:</label>
-  <select [(ngModel)]="activeUserId" name="userSelect">
-    <option [ngValue]="1">User 1</option>
-    <option [ngValue]="2">User 2</option>
-    <option [ngValue]="3">User 3</option>
-    <option [ngValue]="4">User 4</option>
-    <option [ngValue]="5">User 5</option>
-  </select>
-</div> -->
-
-<p>DEBUG: ActiveUserId = {{ activeUserId }}</p>
-<p *ngIf="gameResponse">White Player = {{ gameResponse.whitePlayerId }}</p>
-<p *ngIf="gameResponse">Black Player = {{ gameResponse.blackPlayerId }}</p>
-<p *ngIf="gameResponse">gameId = {{ gameResponse.gameId}}</p>
-
-<label>Welcome to Replay Menu!</label>
-
-<label>Replay Game ID:
-  <input #gameInput type="number">
-</label>
-
-<button (click)="startGame(gameInput.valueAsNumber)">Start Game</button>
-<button (click)="changeTheme()">Theme: {{ currentThemeName }}</button>
-
-
-<div *ngIf="gameId !== null">
-  <p>Replay loading...</p>
-
-<div *ngIf="currentSnapshot.length > 0" >
-  <p>Game Replaying! Game ID: {{ gameId }}</p>
-  <replay-container
-    [snapshot]="currentSnapshot"
-    [gameId]="gameId"
-    [theme]="currentTheme"
-    [activeUserId]="activeUserId">
-  </replay-container>
+<div *ngIf="gameId == null; else elseBlock" class="gameWrap">
+  <div class="gameTitle">THE CHESS PROJECT</div>
+  <div class="card">
+    <div class="formRow">
+      <div class="cardTitle">Replay Game</div>
+      <label>Replay Game ID:
+        <input #gameInput type="number">
+      </label>
+      <div class="controlsBar" style="margin-top:8px">
+        <button class="btn primary" (click)="startGame(gameInput.valueAsNumber)">
+          Start Game
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
+
+<ng-template #elseBlock>
+  <div class="gameWrap">
+    <div class="card-row">
+      <p class="card status">Replay loading...</p>
+      <p class="panel">Game Replaying! Game ID: {{ gameId }}</p>
+
+      <div class="boardShell">
+        <app-container
+          [snapshot]="currentSnapshot"
+          [gameId]="gameId"
+          [theme]="currentTheme"
+          [activeUserId]="activeUserId">
+        </app-container>
+        
+        <div class="overlay"></div>
+      </div>
+
+      <div class="cardTitle"><b>PLAYERS</b></div>
+      <div class="panel">
+        <p><b>Black:</b> {{ gameResponse.blackPlayerId }}</p>
+        <p><b>White:</b> {{ gameResponse.whitePlayerId }}</p>
+        <button class="btn" (click)="changeTheme()">Theme: {{ currentThemeName }}</button>
+      </div>
+    </div>
+  </div>
+</ng-template>

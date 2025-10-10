@@ -6,11 +6,15 @@ import { Coord } from './chessboard/coord';
 @Injectable({
   providedIn: 'root'
 })
+
+
 export class GameService {
+  
   private apiUrl = 'https://localhost:7107/api';
   private knightSubject = new BehaviorSubject<Coord>({ x: 0, y: 0 });
   private currentGameId: number | null = null;
   knightPosition$ = this.knightSubject.asObservable();
+  
 
   constructor(private http: HttpClient) {}
 
@@ -31,10 +35,10 @@ export class GameService {
     return this.http.get<any[]>(`${this.apiUrl}/Chess/GetBoard?gameId=${gameId}`);
   }
 
-  getCurrentTurn(gameId: number): Observable<string> {
-    return this.http.get<{ color: string }>(`/api/chess/current-turn?gameId=${gameId}`)
-      .pipe(map(res => res.color));
+  getCurrentTurn(gameId: number) {
+    return this.http.get(`${this.apiUrl}/Chess/current-turn?gameId=${gameId}`, { responseType: 'text'});
   }
+
   
   getReplayByGameId(gameId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/Chess/GetSnapshots?gameId=${gameId}`);

@@ -19,7 +19,7 @@ type Theme = { light: string; dark: string };
 @Component({
     standalone: true,
   selector: 'replay-menu',
-    imports: [CommonModule, ReplayContainerComponent],
+    imports: [FormsModule, CommonModule, ContainerComponent],
   templateUrl: './replaymenu.component.html'
 })
 
@@ -126,7 +126,7 @@ export class ReplayMenuComponent implements OnInit{
         this.gameId = response.gameId;
         console.log('Game replaying with ID:', this.gameId);
         this.chessService.setGameId(this.gameId);
-        this.router.navigate(['/replay', this.gameId]);
+        this.router.navigate(['/replay/', gameId]);
       },
       error: (err) => {
         console.error('Failed to replay game:', err);

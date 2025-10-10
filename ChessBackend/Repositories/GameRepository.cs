@@ -1,16 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
-using System.Data;
 using System.Text.Json;
-
 namespace ChessBackend
 {
-    public class GameService
+    public class GameRepository : IGameRepository
     {
         private readonly IConfiguration _configuration;
-
-        public GameService(IConfiguration configuration)
+        public GameRepository(IConfiguration configuration)
         {
             _configuration = configuration;
         }
@@ -20,7 +17,6 @@ namespace ChessBackend
         public int StartNewGame(int user1Id, int user2Id)
         {
             int gameId = -1;
-
             using (SqlConnection connection = new SqlConnection(GetConnectionString()))
             using (SqlCommand cmd = new SqlCommand("StartNewGame", connection))
             {
@@ -38,14 +34,12 @@ namespace ChessBackend
                 cmd.ExecuteNonQuery();
                 gameId = (int)outputParam.Value;
             }
-
             return gameId;
         }
 
         public List<object> LoadGame(int gameId)
         {
             var pieces = new List<object>();
-
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
@@ -72,7 +66,6 @@ namespace ChessBackend
                     }
                 }
             }
-
             return pieces;
         }
 
@@ -81,13 +74,10 @@ namespace ChessBackend
             using (SqlConnection connection = new SqlConnection(GetConnectionString()))
             {
                 connection.Open();
-
                 using (SqlCommand cmd = new SqlCommand("SaveFullBoardState", connection))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
-
                     cmd.Parameters.AddWithValue("@gameID", gameID);
-
 
                     var pieceTable = new DataTable();
                     pieceTable.Columns.Add("squareX", typeof(int));
@@ -98,7 +88,7 @@ namespace ChessBackend
 
                     foreach (var item in boardState)
                     {
-                        dynamic piece = item;
+                        dynamic piece = item; // same as your original code
                         int playerIdForPiece = GetPlayerIdByColor(gameID, piece.pieceColor);
 
                         pieceTable.Rows.Add(
@@ -109,7 +99,6 @@ namespace ChessBackend
                             false
                         );
                     }
-
 
                     var param = cmd.Parameters.AddWithValue("@Pieces", pieceTable);
                     param.SqlDbType = SqlDbType.Structured;
@@ -123,7 +112,6 @@ namespace ChessBackend
         public void SaveSnapshot(int gameID, int turnNumber, List<object> boardState)
         {
             string boardJson = JsonSerializer.Serialize<object>(boardState);
-
             using (SqlConnection connection = new SqlConnection(GetConnectionString()))
             {
                 connection.Open();
@@ -163,19 +151,16 @@ namespace ChessBackend
             }
         }
 
-
         public int GetPlayerIdByColor(int gameID, string color)
         {
             using (SqlConnection connection = new SqlConnection(GetConnectionString()))
             {
                 connection.Open();
-
                 using (SqlCommand cmd = new SqlCommand(
                     "SELECT gamePlayerID FROM GamePlayers WHERE gameID = @gameID AND player_color = @color", connection))
                 {
                     cmd.Parameters.AddWithValue("@gameID", gameID);
                     cmd.Parameters.AddWithValue("@color", color);
-
                     var result = cmd.ExecuteScalar();
                     return result != null ? (int)result : -1;
                 }
@@ -189,22 +174,16 @@ namespace ChessBackend
             {
                 command.CommandType = CommandType.StoredProcedure;
                 command.Parameters.AddWithValue("@GameId", gameId);
-
                 if (winnerUserId.HasValue)
-                {
                     command.Parameters.AddWithValue("@WinnerUserId", winnerUserId.Value);
-                }
                 else
-                {
                     command.Parameters.AddWithValue("@WinnerUserId", DBNull.Value);
-                }
-
                 command.Parameters.AddWithValue("@gameStatus", gameStatus);
-
                 connection.Open();
                 command.ExecuteNonQuery();
             }
         }
+
         public string GetGameStatus(int gameId)
         {
             using var conn = new SqlConnection(GetConnectionString());
@@ -215,34 +194,27 @@ namespace ChessBackend
             return string.IsNullOrEmpty(val) ? "In Progress" : val;
         }
 
-
-
         public (int whiteId, int blackId) GetPlayerColors(int gameId)
         {
             using (SqlConnection connection = new SqlConnection(GetConnectionString()))
             {
                 connection.Open();
-
                 string sql = "SELECT userID, player_color FROM GamePlayers WHERE gameID = @gameID";
                 using (SqlCommand cmd = new SqlCommand(sql, connection))
                 {
                     cmd.Parameters.AddWithValue("@gameID", gameId);
-
                     int whiteId = 0;
                     int blackId = 0;
-
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
                         {
                             int userId = reader.GetInt32(0);
                             string color = reader.GetString(1);
-
                             if (color == "White") whiteId = userId;
                             else if (color == "Black") blackId = userId;
                         }
                     }
-
                     return (whiteId, blackId);
                 }
             }
@@ -253,7 +225,6 @@ namespace ChessBackend
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-
                 using (SqlCommand cmd = new SqlCommand("SELECT userID FROM GamePlayers WHERE gamePlayerID = @id", conn))
                 {
                     cmd.Parameters.AddWithValue("@id", gamePlayerID);
@@ -264,3 +235,4 @@ namespace ChessBackend
         }
     }
 }
+

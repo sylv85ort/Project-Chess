@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { GameComponent } from './game.component'; // adjust path
 import { ReplayBoardComponent } from './chessboard/replay.component';
 import { ReplayMenuComponent } from './replaymenu.component';
+import { LoadComponent } from './load.component';
 
 export const routes: Routes = [
   { path: 'game', component: GameComponent },
@@ -10,4 +11,5 @@ export const routes: Routes = [
   { path: '', redirectTo: '/game', pathMatch: 'full' },
   { path: 'replay', component: ReplayMenuComponent },
   { path: 'replay/:id', component: ReplayMenuComponent },
+  { path: 'load', component: LoadComponent }
 ];

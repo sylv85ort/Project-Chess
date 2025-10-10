@@ -13,13 +13,11 @@ import { RouterModule } from '@angular/router';
 
 export class AppComponent implements OnInit {
   title = 'Chess Game';
-  message = 'aaaaaaaaaaaaaaaaaaaaaaaaa';
+  message = '';
 
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
-    this.http.get<any>('https://localhost:7107/api/Chess')
-      .subscribe(response => this.message = response.message);
   }
 }
 

@@ -2,6 +2,7 @@
     <div *ngFor="let y of [0,1,2,3,4,5,6,7]" class="row">
         <app-square
             *ngFor="let x of [0,1,2,3,4,5,6,7]"
+            class="square"
             [pos]="{x,y}"
             [connectedIds]="squareIds" 
             [black]="isBlack({ x, y })"
@@ -66,5 +67,6 @@
             ></app-king>
         </app-square>
     </div>
+        <div class="overlay" *ngIf="isReplayMode"></div>
 </div>
   

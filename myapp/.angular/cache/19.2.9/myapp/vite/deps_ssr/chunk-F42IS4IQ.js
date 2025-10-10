@@ -2,7 +2,7 @@ import { createRequire } from 'module';const require = createRequire(import.meta
 import {
   DOCUMENT,
   isPlatformBrowser
-} from "./chunk-JAXOFING.js";
+} from "./chunk-Q7TDBDME.js";
 import {
   Attribute,
   ChangeDetectorRef,
@@ -5013,4 +5013,4 @@ export {
    * License: MIT
    *)
 */
-//# sourceMappingURL=chunk-6CPBTV3U.js.map
+//# sourceMappingURL=chunk-F42IS4IQ.js.map

@@ -1,51 +1,96 @@
+<!-- START MENU -->
+   <!-- <div class="formRow user-switcher">
+    <label for="userSelect">Active User:</label>
+    <select id="userSelect" [(ngModel)]="activeUserId" name="userSelect">
+      <option [ngValue]="1">User 1</option>
+      <option [ngValue]="2">User 2</option>
+      <option [ngValue]="3">User 3</option>
+      <option [ngValue]="4">User 4</option>
+      <option [ngValue]="5">User 5</option>
+    </select>
+  </div> -->
 
-<div class="user-switcher">
-  <label for="userSelect">Active User:</label>
-  <select [(ngModel)]="activeUserId" name="userSelect">
-    <option [ngValue]="1">User 1</option>
-    <option [ngValue]="2">User 2</option>
-    <option [ngValue]="3">User 3</option>
-    <option [ngValue]="4">User 4</option>
-    <option [ngValue]="5">User 5</option>
-  </select>
-</div>
-
-<div *ngIf="gameId == null">
-  <label>Player 1 ID:
-    <input #p1Input type="number">
-  </label>
-
-  <label>Player 2 ID:
-    <input #p2Input type="number">
-  </label>
-      
-  <button (click)="startGame(p1Input.valueAsNumber, p2Input.valueAsNumber)">Start Game</button>
-</div>
-<p *ngIf="gameResponse">White Player = {{ gameResponse.whitePlayerId }}</p>
-<p *ngIf="gameResponse">Black Player = {{ gameResponse.blackPlayerId }}</p>
-<div *ngIf="activeUserId === gameResponse.whitePlayerId; else blackPlayer">
-  Active Player : White ({{activeUserId}})
-</div>
-<ng-template #blackPlayer>
-    Current Turn: Black ({{activeUserId}})
-</ng-template>
-
-<div *ngIf="isMyTurn == true">
-  <p *ngif="currentTurn === playerColor">Your turn {{ currentTurn  }}</p>
-    <p *ngif="currentTurn !== playerColor">Your turn {{ currentTurn  }}</p>
-</div>
-
-<div *ngIf="gameId !== null">
-  <p>Game Created! Game ID: {{ gameId }}</p>
-  <button (click)="changeTheme()">Theme: {{ currentThemeName }}</button>
-  <div *ngIf="endGameMessage !== null" class="endgame-banner"
-      ><p>{{ endGameMessage }}</p>
+<div *ngIf="gameId == null; else elseBlock" class="gameWrap">
+  <div class="gameTitle">THE CHESS PROJECT</div>
+  <div class="card">
+    <div class="cardTitle">Start Game</div>
+    <div class="formRow">
+      <label>Player 1 ID:
+        <input #p1Input type="number" />
+      </label>
+      <label>Player 2 ID:
+        <input #p2Input type="number" />
+      </label>
     </div>
-
-  <!-- show board only when game exists -->
-  <div class="container">
-    <div class="chessboard">
-      <app-container [gameId]="gameId" [activeUserId]="activeUserId" [theme]="currentTheme" (activeUserIdChange)="activeUserId = $event" (gameEnded)="onGameEnded($event)"></app-container>
+    <div class="controlsBar" style="margin-top:8px">
+      <button class="btn primary"
+        (click)="startGame(p1Input.valueAsNumber, p2Input.valueAsNumber)">
+        Start Game
+      </button>
     </div>
   </div>
 </div>
+
+  <ng-template #elseBlock>
+    <div class="gameWrap">
+            <!-- board host -->
+      <div class="card" style="padding:0">
+        <app-container 
+          [gameId]="gameId"
+          [isMyTurn]="isMyTurn"
+          [currentTurn]="currentTurnValue"
+          (moveSucceeded)="refreshTurnOnce()"
+          [activeUserId]="activeUserId"
+          [theme]="currentTheme"
+          (activeUserIdChange)="activeUserId = $event"
+          (gameEnded)="onGameEnded($event)">
+        </app-container>
+      </div>
+      <div class="turnPill">
+        <span class="turnDot"></span>
+        {{ currentTurnValue === 'White' ? 'White to move' : 'Black to move' }}
+      </div>
+      <div class="card meta-card">
+        <div class="meta-row">
+          <section class="card-col">
+            <div *ngIf="gameResponse" class="panel">
+              <div *ngIf="currentTurnValue =='White'; else colorElse">
+                <section class="meta-col">
+                  <div class="cardTitle"><b>PLAYERS</b></div>
+                  <div class="panel">
+                    <h5><b>White:</b> {{ gameResponse.whitePlayerId }}</h5>
+                    <p><b>Black:</b> {{ gameResponse.blackPlayerId }}</p>
+                  </div>
+                </section>
+              </div>
+              <ng-template #colorElse>
+                <section class="meta-col">
+                  <div class="cardTitle"><b>PLAYERS</b></div>
+                <div class="panel">
+                  <p><b>White:</b> {{ gameResponse.whitePlayerId }}</p>
+                  <h5><b>Black:</b> {{ gameResponse.blackPlayerId }}</h5>
+                </div>
+                </section>
+              </ng-template>
+              <section class="card-col">
+                <div class="cardTitle"><b>GAME</b></div>
+                <div class="panel">
+                  <p><b>Current turn:</b> {{ currentTurnValue }}</p>
+                  <p><b>Game ID:</b> {{ gameId }}</p>
+                </div>
+              </section>
+            </div>
+          </section>
+        </div>
+      </div>
+    <div class="controlsBar" style="margin-top:8px">
+      <button class="btn" (click)="changeTheme()">Theme: {{ currentThemeName }}</button>
+    </div>
+
+    <div *ngIf="endGameMessage !== null" class="panelTitle">
+      <h1>{{ endGameMessage }}</h1>
+    </div>
+    </div>
+  </ng-template>
+
+<!-- GAME UI + BOARD -->

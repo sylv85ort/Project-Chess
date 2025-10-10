@@ -1,0 +1,31 @@
+<!-- START MENU -->
+   <!-- <div class="formRow user-switcher">
+    <label for="userSelect">Active User:</label>
+    <select id="userSelect" [(ngModel)]="activeUserId" name="userSelect">
+      <option [ngValue]="1">User 1</option>
+      <option [ngValue]="2">User 2</option>
+      <option [ngValue]="3">User 3</option>
+      <option [ngValue]="4">User 4</option>
+      <option [ngValue]="5">User 5</option>
+    </select>
+  </div> -->
+
+<div *ngIf="gameId == null" class="gameWrap">
+<div class="gameTitle">THE CHESS PROJECT</div>
+  <div class="card">
+    <div class="cardTitle">Load Game</div>
+    <div class="formRow">
+      <label>Game ID:
+        <input #gameId type="number" />
+      </label>
+    </div>
+    <div class="controlsBar" style="margin-top:8px">
+        <button ng-attr-data=" routerLink='/game/ + gameId" class="btn primary"
+            (click)="loadGame(gameId.valueAsNumber)"
+            >
+            Load Game
+        </button>
+    </div>
+  </div>
+</div>
+<!-- GAME UI + BOARD -->

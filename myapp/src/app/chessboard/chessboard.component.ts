@@ -14,13 +14,14 @@ import { Console, debug } from 'console';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem, CdkDropList, CdkDragEnter, CdkDragExit, CdkDrag, CdkDragHandle, CdkDragEnd } from '@angular/cdk/drag-drop';
 import { exit } from 'process';
 import e from 'express';
+import { ActivatedRoute } from '@angular/router';
 type Theme = { light: string; dark: string };
 
 @Component({
   standalone: true,
   selector: 'app-board',
   imports: [SquareComponent, KnightComponent, CommonModule, PawnComponent, BishopComponent, RookComponent, QueenComponent, KingComponent, DragDropModule],
-  styleUrl: './chessboard.component.css',
+  styleUrl: './chessboard.styles.css',
   templateUrl: './chessboard.component.html'
 })
 export class BoardComponent implements OnInit, OnChanges {
@@ -29,12 +30,16 @@ export class BoardComponent implements OnInit, OnChanges {
   @Input() gameId!: number;
   @Input() activeUserId!: number;
   @Input() theme!: Theme;
+  @Input() snapshot: any[] = [];
+
 
   @Output() gameEnded = new EventEmitter<string>();
   @Output() activeUserIdChange = new EventEmitter<number>();
   @Output() dropped = new EventEmitter<CdkDragDrop<any>>();
   @Output() entered = new EventEmitter<CdkDragEnter<Coord>>();
   @Output() exited  = new EventEmitter<CdkDragExit<Coord>>();
+  @Output() moveSucceeded = new EventEmitter<void>();
+
 
   board: any[][] = Array.from({ length: 8 }, () => Array(8).fill(null));
   selectedPiece$ = new BehaviorSubject<Coord | null>(null);
@@ -42,6 +47,9 @@ export class BoardComponent implements OnInit, OnChanges {
   endGameMessage: string = '';
   gameOver: boolean = false;
   currentPlayerColor: any;
+  public snapshots: any[][] = [];
+  public isReplayMode: boolean = false;
+
 
   squareIds: string[] = Array.from({ length: 8 }, (_, x) =>
     Array.from({ length: 8 }, (_, y) => `sq-${x}-${y}`)
@@ -60,6 +68,9 @@ export class BoardComponent implements OnInit, OnChanges {
     if (changes['activeUserId'] && this.activeUserId) {
       this.loadBoard();
     }
+    if (changes['snapshot'] && this.snapshot) {
+      this.loadReplay(this.snapshot);
+    }
   }
 
   ngAfterViewInit() {
@@ -68,6 +79,7 @@ export class BoardComponent implements OnInit, OnChanges {
   }
 
   loadBoard(): void {
+    this.isReplayMode==false;
     this.game.getBoardByGameId(this.gameId).subscribe(boardData => {
       const newBoard: any[][] = Array.from({ length: 8 }, () => Array(8).fill(null));
       for (const piece of boardData) {
@@ -76,6 +88,26 @@ export class BoardComponent implements OnInit, OnChanges {
       }
       this.board = newBoard;
     });
+  }
+
+  loadReplay(snapshot: any): void {
+  this.isReplayMode==true;
+  this.board = this.createEmptyBoard();
+    for (let piece of snapshot) {
+        const x = piece.position.x;
+        const y = piece.position.y;
+        this.board[y][x] = {
+          pieceType: piece.pieceType,
+          pieceColor: piece.pieceColor
+        }
+    }
+  }
+    createEmptyBoard(): any[][] {
+    const board = [];
+    for (let i = 0; i < 8; i++) {
+      board[i] = new Array(8).fill(null);
+    }
+    return board;
   }
 
   onDragStart(pos: Coord) {
@@ -113,11 +145,10 @@ export class BoardComponent implements OnInit, OnChanges {
       to.x < 0 || to.x > 7 || to.y < 0 || to.y > 7
     ) { e.source.reset(); return; }
 
-    // if you still want to skip same-square moves, keep this; otherwise remove it
     if (to.x === from.x && to.y === from.y) { e.source.reset(); return; }
 
     this.attemptMove(from, to);
-    e.source.reset(); // DOM snaps back; your board render places it at `to`
+    e.source.reset();
   }
 
   handleSquareClick(pos: Coord): void {
@@ -155,7 +186,13 @@ export class BoardComponent implements OnInit, OnChanges {
   attemptMove(from: Coord, to: Coord){
     const piece = this.board[from.y][from.x];
     this.game.movePiece(piece.pieceType, from, to, this.activeUserId, this.gameId, piece.pieceColor, (res) => {
-    if (res.validMove) {
+    if (res.validMove) this.moveSucceeded.emit();
+    {
+      if (res.message == "Move successful"){
+        this.game.switchActiveUserId(this.gameId, this.activeUserId).subscribe(r => {
+          this.activeUserIdChange.emit(r.nextUserId);
+        });
+      }
       if (res.message === "Checkmate!") {
         this.game.declareGameResult(this.gameId, this.activeUserId).subscribe();
         this.gameEnded.emit(`Checkmate! Player ${this.activeUserId} wins!`);
@@ -163,11 +200,8 @@ export class BoardComponent implements OnInit, OnChanges {
         this.game.declareGameResult(this.gameId, null).subscribe();
         this.gameEnded.emit("Stalemate!");
       }
-      this.game.switchActiveUserId(this.gameId, this.activeUserId).subscribe(r => {
-        this.activeUserIdChange.emit(r.nextUserId);
-      });
       this.loadBoard();
-      } else {
+      } if (res.validMove == false) {
       console.log("Move rejected:", res.message);
       alert("Invalid move: " + res.message);
       }

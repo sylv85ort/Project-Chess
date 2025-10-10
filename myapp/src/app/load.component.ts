@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CreateGameRequest, GameResponse, GameService } from './game.service'; // adjust path as needed
 import { AppComponent } from './app.component';
 import { ContainerComponent } from './chessboard/container.component';
-import { ActivatedRoute, Router} from '@angular/router'
+import { ActivatedRoute, Router, RouterLink} from '@angular/router'
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SquareComponent } from './chessboard/square.component';
@@ -23,12 +23,12 @@ type Theme = { light: string; dark: string };
 
 @Component({
   standalone: true,
-  selector: 'app-game',
-    imports: [FormsModule, ContainerComponent, CommonModule, BoardComponent],
-  templateUrl: './game.component.html'
+  selector: 'app-load',
+    imports: [FormsModule, ContainerComponent, CommonModule, BoardComponent, RouterLink],
+  templateUrl: './load.component.html'
 })
 
-export class GameComponent implements OnInit{
+export class LoadComponent implements OnInit{
   currentThemeName: ThemeName = 'classic';
   currentTheme: Theme = THEMES[this.currentThemeName];  
   activeUserId!: number;
@@ -56,7 +56,6 @@ export class GameComponent implements OnInit{
       if (id) {
         this.gameId = +id;
         console.log('Loaded Game ID from route:', this.gameId);
-        this.refreshTurnOnce();
 
         this.chessService.getBoardByGameId(this.gameId).subscribe({
           next: (board) => {
@@ -83,7 +82,6 @@ export class GameComponent implements OnInit{
         console.log('White' + resp.whitePlayerId)
         this.whitePlayerId = resp.whitePlayerId;
         this.blackPlayerId = resp.blackPlayerId;
-        this.refreshTurnOnce();
       },
       error: (err) => console.error('Failed loading game details:', err)
       });
@@ -95,69 +93,14 @@ export class GameComponent implements OnInit{
     this.activeUserId = id;
     console.log('[GameComponent] Active user switched to:', this.activeUserId);
   }
-  
-  changeTheme(){
-    if (this.currentThemeName === 'classic') {
-      this.currentThemeName = 'red';
-    } else if (this.currentThemeName === 'red') {
-      this.currentThemeName = 'aqua';
-    } else {
-      this.currentThemeName = 'classic';
-    }    this.currentTheme = THEMES[this.currentThemeName];
-  }
 
-  refreshTurnOnce() {
-    if (this.gameId == null) {
-      console.warn('refreshTurnOnce called without a gameId');
-      return;
-    }
-    this.chessService.getCurrentTurn(this.gameId).subscribe({
-      next: (turn) => {
-        console.log('[turn raw]', turn);
-        const t = this.dequote(turn);
-        this.currentTurnValue = t;
-        this.isMyTurn = this.norm(t) === this.norm(this.playerColor);
-      },
-      error: (err) => console.error('getCurrentTurn failed', err)
-    });
-    if (this.currentTurnValue == "White"){
-      this.setActiveUser(this.whitePlayerId)
-    } else if (this.currentTurnValue == "Black"){
-      this.setActiveUser(this.blackPlayerId)
+  loadGame(gameId: number): void {
+    console.log("Loaded game id" + gameId);
+    try {
+      this.router.navigateByUrl("/game/" + gameId);
+    } catch (error) {
+      console.log(Error.toString);
     }
   }
 
-  getCurrentTurn(gameId: number): void {
-    this.chessService.getCurrentTurn(gameId).subscribe(turn => {
-      this.currentTurnValue = turn;
-      this.isMyTurn = turn.trim().toLowerCase() === this.playerColor.trim().toLowerCase();
-    });
-  }
-
-
-  startGame(player1Id: number, player2Id: number): void {
-    this.activeUserId = this.whitePlayerId;
-    const request: CreateGameRequest = {
-      player1Id: player1Id,
-      player2Id: player2Id
-    };
-    this.endGameMessage = "";
-
-    this.chessService.startNewGame(request).subscribe({
-      next: (response: GameResponse) => {
-        this.gameId = response.gameId;
-        console.log('Game started with ID:', this.gameId);
-        this.chessService.setGameId(this.gameId);
-        this.router.navigate(['/game', this.gameId]);
-      },
-      error: (err) => {
-        console.error('Failed to create game:', err);
-      }
-    });
-  }
-
-  onGameEnded(message: string): void {
-    console.log("CHECKMATE MESSAGE:" + message);
-    this.endGameMessage = message;
-  }
 }

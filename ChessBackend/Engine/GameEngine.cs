@@ -104,171 +104,32 @@ namespace ChessBackend
         public MoveResult ValidateAndMovePiece(Coord from, Coord to, PieceType type, PieceColor color, String gameStatus, ChessPiece[,] board)
         {
             var piece = board[from.X, from.Y];
-            
             bool moved = false;
 
-            if (type != piece.PieceType)
-            {
-                return new MoveResult { IsValid = false, Message = "Piece type mismatch" };
-            }
+            var early = InitialChecks(from, to, type, color, gameStatus, piece);
+            if (early != null) return early;
 
-            switch (piece.PieceType)
-            {
-                case PieceType.Pawn:
-                    if (IsEnPassant(from, to, board))
-                    {
-                        int targetX = from.X;
-                        int targetY = to.Y;
-                        ChessPiece capturedPawn = board[targetX, targetY];
-                        if (capturedPawn != null)
-                        {
-                            capturedPawn.isCaptured = 1;
-                            board[targetX, targetY] = null;
-                            moved = true;
-                        }
-
-                        moved = true;
-                    }
-                    else if (piece.CanMovePawn(to, board)) moved = true; break;
-                case PieceType.Knight:
-                    {
-                        if (piece.CanMoveKnight(to, board)) moved = true; break;
-                    }
-                case PieceType.Bishop:
-                    {
-                        if (piece.CanMoveBishop(to, board)) moved = true; break;
-                    }
-                case PieceType.Rook:
-                    {
-                        if (piece.CanMoveRook(to, board)) moved = true; break;
-                    }
-                case PieceType.Queen:
-                    {
-                        if (piece.CanMoveQueen(to, board)) moved = true; break;
-                    }
-                case PieceType.King:
-                    if (CanCastle(from, to, board))
-                    {
-                        board[to.X, to.Y] = piece;
-                        board[from.X, from.Y] = null;
-                        piece.SetPosition(to);
-                        piece.hasMoved = true;
-
-                        bool isKingside = to.Y > from.Y;
-                        int rookStartY = isKingside ? 7 : 0;
-                        int rookEndY = isKingside ? 5 : 3;
-                        ChessPiece rook = board[from.X, rookStartY];
-                        board[from.X, rookEndY] = rook;
-                        board[from.X, rookStartY] = null;
-                        rook.SetPosition(new Coord(from.X, rookEndY));
-                        rook.hasMoved = true;
-
-                        moved = true;
-                    }
-                    else if (piece.CanMoveKing(to, board))
-                    {
-                        moved = true;
-                    }
-                    break;
-                default: return new MoveResult { IsValid = false, Message = "Unknown piece type" };
-            }
+            moved = MovementByPieceType(piece, from, to, board);
 
             if (!moved)
                 return new MoveResult { IsValid = false, Message = "Invalid move for this piece" };
+
             piece.hasMoved = true;
 
-            var target = board[to.X, to.Y];
-            if (target != null && target.Color != piece.Color)
-            {
-                if (target.PieceType == PieceType.King)
-                    return new MoveResult { IsValid = false, Message = "You cannot capture the king" };
-
-                target.isCaptured = 1;
-            }
-
-            if (!IsValidCoordinate(from) || !IsValidCoordinate(to))
-            {
-                return new MoveResult { IsValid = false, Message = "Invalid coordinates" };
-            }
-
-            if (piece == null)
-            {
-                return new MoveResult { IsValid = false, Message = "No piece at selected position" };
-            }
-
-            if (piece.Color != currentTurn)
-            {
-                return new MoveResult { IsValid = false, Message = $"It's {currentTurn}'s turn" };
-            }
-
-
-
-            if (gameStatus == "Finished")
-            {
-                return new MoveResult { IsValid = false, Message = "Game complete" };
-            }
+            CaptureIfNeeded(board[to.X, to.Y], piece);
 
             board[to.X, to.Y] = piece;
             board[from.X, from.Y] = null;
             piece.SetPosition(to);
+
             CanPromote(piece, to, board);
 
-            var opponentColor = (piece.Color == PieceColor.White) ? PieceColor.Black : PieceColor.White;
+            var end = EndgameCheck(piece, to, board);
+            if (end != null) return end;
 
-
-
-            if (IsInCheck(opponentColor, board) && !HasLegalMoves(opponentColor, board))
-            {
-                Debug.WriteLine($"IsInCheck for {opponentColor}: {IsInCheck(opponentColor, board)}");
-                Debug.WriteLine($"HasLegalMoves for {opponentColor}: {HasLegalMoves(opponentColor, board)}");
-                return new MoveResult
-                {
-                    IsValid = true,
-                    Message = "Checkmate!",
-                    NewPosition = to,
-                    PieceColor = piece.Color.ToString(),
-                    PieceType = (int)piece.PieceType,
-                    WinnerUserId = 1
-                };
-            } 
-            
-            else if (IsInCheck(color, board) && (HasLegalMoves(color, board)) && type != PieceType.King)
-            {
-                Debug.WriteLine("You need to move the king");
-                Debug.WriteLine($"IsInCheck for {color}: {IsInCheck(color, board)}");
-                return new MoveResult
-                {
-                    IsValid = false,
-                    Message = "Illegal Move: " + piece.Color.ToString() + " you're in Check",
-                    NewPosition = to,
-                    PieceColor = piece.Color.ToString(),
-                    PieceType = (int)piece.PieceType,
-                };
-            }
-
-            else if (!IsInCheck(opponentColor, board) && !HasLegalMoves(opponentColor, board))
-            {
-                return new MoveResult
-                {
-                    IsValid = true,
-                    Message = "Stalemate!",
-                    NewPosition = to,
-                    PieceColor = piece.Color.ToString(),
-                    PieceType = (int)piece.PieceType
-                };
-            }
-
-            if (piece.PieceType == PieceType.Pawn && Math.Abs(to.X - from.X) == 2)
-            {
-                LastDoubleStepPawnPosition = to;
-            }
-            else
-            {
-                LastDoubleStepPawnPosition = null;
-            }
+            UpdateEnPassant(piece, from, to);
 
             currentTurn = (currentTurn == PieceColor.White) ? PieceColor.Black : PieceColor.White;
-            Debug.WriteLine("It is now " + currentTurn + "'s turn");
 
             return new MoveResult
             {
@@ -279,6 +140,131 @@ namespace ChessBackend
                 PieceType = (int)piece.PieceType
             };
         }
+
+        private MoveResult InitialChecks(Coord from, Coord to, PieceType type, PieceColor color, string gameStatus, ChessPiece piece)
+        {
+            if (!IsValidCoordinate(from) || !IsValidCoordinate(to))
+                return new MoveResult { IsValid = false, Message = "Invalid coordinates" };
+
+            if (piece == null)
+                return new MoveResult { IsValid = false, Message = "No piece at selected position" };
+
+            if (type != piece.PieceType)
+                return new MoveResult { IsValid = false, Message = "Piece type mismatch" };
+
+            if (piece.Color != currentTurn)
+                return new MoveResult { IsValid = false, Message = $"It's {currentTurn}'s turn" };
+
+            if (gameStatus == "Finished")
+                return new MoveResult { IsValid = false, Message = "Game complete" };
+
+            return null;
+        }
+
+        private bool MovementByPieceType(ChessPiece piece, Coord from, Coord to, ChessPiece[,] board)
+        {
+            bool moved = false;
+
+            switch (piece.PieceType)
+            {
+                case PieceType.Pawn:
+                    if (IsEnPassant(from, to, board))
+                    {
+                        int targetX = from.X;
+                        int targetY = to.Y;
+                        var capturedPawn = board[targetX, targetY];
+                        if (capturedPawn != null)
+                        {
+                            capturedPawn.isCaptured = 1;
+                            board[targetX, targetY] = null;
+                        }
+                        moved = true;
+                    }
+                    else if (piece.CanMovePawn(to, board))
+                        moved = true;
+                    break;
+
+                case PieceType.Knight:
+                    if (piece.CanMoveKnight(to, board)) moved = true;
+                    break;
+
+                case PieceType.Bishop:
+                    if (piece.CanMoveBishop(to, board)) moved = true;
+                    break;
+
+                case PieceType.Rook:
+                    if (piece.CanMoveRook(to, board)) moved = true;
+                    break;
+
+                case PieceType.Queen:
+                    if (piece.CanMoveQueen(to, board)) moved = true;
+                    break;
+
+                case PieceType.King:
+                    if (CanCastle(from, to, board))
+                    {
+                        HandleCastle(piece, from, to, board);
+                        moved = true;
+                    }
+                    else if (piece.CanMoveKing(to, board))
+                        moved = true;
+                    break;
+            }
+            return moved;
+        }
+        private void HandleCastle(ChessPiece piece, Coord from, Coord to, ChessPiece[,] board)
+        {
+            board[to.X, to.Y] = piece;
+            board[from.X, from.Y] = null;
+            piece.SetPosition(to);
+            piece.hasMoved = true;
+
+            bool isKingside = to.Y > from.Y;
+            int rookStartY = isKingside ? 7 : 0;
+            int rookEndY = isKingside ? 5 : 3;
+
+            var rook = board[from.X, rookStartY];
+            board[from.X, rookEndY] = rook;
+            board[from.X, rookStartY] = null;
+            rook.SetPosition(new Coord(from.X, rookEndY));
+            rook.hasMoved = true;
+        }
+
+        private void CaptureIfNeeded(ChessPiece target, ChessPiece piece)
+        {
+            if (target != null && target.Color != piece.Color)
+            {
+                if (target.PieceType == PieceType.King)
+                    return;
+
+                target.isCaptured = 1;
+            }
+        }
+
+        private MoveResult EndgameCheck(ChessPiece piece, Coord to, ChessPiece[,] board)
+        {
+            var opponent = piece.Color == PieceColor.White ? PieceColor.Black : PieceColor.White;
+
+            if (IsInCheck(opponent, board) && !HasLegalMoves(opponent, board))
+                return new MoveResult { IsValid = true, Message = "Checkmate!", NewPosition = to, PieceColor = piece.Color.ToString(), PieceType = (int)piece.PieceType, WinnerUserId = 1 };
+
+            if (IsInCheck(piece.Color, board) && HasLegalMoves(piece.Color, board) && piece.PieceType != PieceType.King)
+                return new MoveResult { IsValid = false, Message = "Illegal Move: " + piece.Color + " you're in Check", NewPosition = to, PieceColor = piece.Color.ToString(), PieceType = (int)piece.PieceType };
+
+            if (!IsInCheck(opponent, board) && !HasLegalMoves(opponent, board))
+                return new MoveResult { IsValid = true, Message = "Stalemate!", NewPosition = to, PieceColor = piece.Color.ToString(), PieceType = (int)piece.PieceType };
+
+            return null;
+        }
+
+        private void UpdateEnPassant(ChessPiece piece, Coord from, Coord to)
+        {
+            if (piece.PieceType == PieceType.Pawn && Math.Abs(to.X - from.X) == 2)
+                LastDoubleStepPawnPosition = to;
+            else
+                LastDoubleStepPawnPosition = null;
+        }
+
 
         public bool IsEnPassant(Coord from, Coord to, ChessPiece[,] board)
         {

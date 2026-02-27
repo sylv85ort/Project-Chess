@@ -12,18 +12,12 @@ namespace ChessBackend
             _repo = repo;
         }
 
-        public int StartNewGame(int user1Id, int user2Id) => _repo.StartNewGame(user1Id, user2Id);
-        public List<object> LoadGame(int gameId) => _repo.LoadGame(gameId);
-        public void SaveBoardToDatabase(int gameID, List<object> boardState) => _repo.SaveBoardToDatabase(gameID, boardState);
-        public void SaveSnapshot(int gameID, int turnNumber, List<object> boardState) => _repo.SaveSnapshot(gameID, turnNumber, boardState);
-        public List<List<object>> GetSnapshots(int gameID) => _repo.GetSnapshots(gameID);
-        public int GetPlayerIdByColor(int gameID, string color) => _repo.GetPlayerIdByColor(gameID, color);
-        public void DeclareGameResult(int gameId, int? winnerUserId, string gameStatus) => _repo.DeclareGameResult(gameId, winnerUserId, gameStatus);
-        public string GetGameStatus(int gameId) => _repo.GetGameStatus(gameId);
-        public (int whiteId, int blackId) GetPlayerColors(int gameId) => _repo.GetPlayerColors(gameId);
-        public int GetUserIdByGamePlayer(int gamePlayerID) => _repo.GetUserIdByGamePlayer(gamePlayerID);
-
-        public object GetBoardState()
+        public List<object> LoadGame(int gameId){
+            var dbPieces = _repo.LoadGame(gameId);
+            _gameEngine.BuildBoard(dbPieces);
+            return dbPieces;
+        }
+        public List<object> GetBoardState()
         {
             var boardState = new List<object>();
             for (int y = 0; y < 8; y++)
@@ -37,12 +31,25 @@ namespace ChessBackend
                         {
                             position = new { x = x, y = y },
                             pieceType = (int)piece.PieceType,
-                            pieceColor = piece.Color.ToString()
+                            pieceColor = piece.Color.ToString(),
+                            pieceID = piece.pieceID
                         });
                     }
                 }
             }
             return boardState;
         }
+        public void SaveBoardToDatabase(int gameID, List<object> boardState)
+        {
+            _repo.SaveBoardToDatabase(gameID, boardState);
+        }
+        public int StartNewGame(int user1Id, int user2Id) => _repo.StartNewGame(user1Id, user2Id);
+        public void SaveSnapshot(int gameID, int turnNumber, List<object> boardState) => _repo.SaveSnapshot(gameID, turnNumber, boardState);
+        public List<List<object>> GetSnapshots(int gameID) => _repo.GetSnapshots(gameID);
+        public int GetPlayerIdByColor(int gameID, string color) => _repo.GetPlayerIdByColor(gameID, color);
+        public void DeclareGameResult(int gameId, int? winnerUserId, string gameStatus) => _repo.DeclareGameResult(gameId, winnerUserId, gameStatus);
+        public string GetGameStatus(int gameId) => _repo.GetGameStatus(gameId);
+        public (int whiteId, int blackId) GetPlayerColors(int gameId) => _repo.GetPlayerColors(gameId);
+        public int GetUserIdByGamePlayer(int gamePlayerID) => _repo.GetUserIdByGamePlayer(gamePlayerID);
     }
 }
